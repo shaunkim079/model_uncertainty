@@ -11,13 +11,13 @@ if(Sys.info()["sysname"]=="Linux"){
 }
 
 # uninstall function
-source("gr4j/build/uninst.r")
+source("gr4j_with_routing/build/uninst.r")
 
 if(is.loaded("sma_gr4j")){
   if(Sys.info()["sysname"]=="Linux"){
-    dyn.unload("gr4j/src/gr4j.so")
+    dyn.unload("gr4j_with_routing/src/gr4j.so")
   } else {
-    dyn.unload("gr4j/src/gr4j.dll")
+    dyn.unload("gr4j_with_routing/src/gr4j.dll")
   }
 }
 
