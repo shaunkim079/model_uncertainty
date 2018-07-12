@@ -17,7 +17,7 @@ gr4j.sma<-function(param, initial_state, state_error, input,
     stopifnot(etmult >= 0)
     stopifnot(param2 > 0)
     
-    if(is.loaded("sma_gr4j") & run_compiled){
+    if(is.loaded("sma_gr4j_sk") & run_compiled){
       P <- as.double(input$P)
       E <- as.double(input$E * etmult)
       initial_state <- as.double(initial_state)
@@ -29,7 +29,7 @@ gr4j.sma<-function(param, initial_state, state_error, input,
       S <- as.double(rep(0,n))
       ET <- as.double(rep(0,n))
       
-      out <- .C("sma_gr4j",
+      out <- .C("sma_gr4j_sk",
                 P=P,
                 E=E,
                 n=n,
@@ -242,8 +242,8 @@ gr4jrouting.sim.sk<-function (U, x2, x3, x4, initial_state_R = 0, split = 0.9, r
     Q9 <- Q9.run$flow
     Q1 <- Q1.run$flow
     #COMPILED <- (hydromad.getOption("pure.R.code") == FALSE)
-    if (is.loaded("routing_gr4j") & run_compiled) {
-      ans <- .C("routing_gr4j", as.double(Q9), as.double(Q1), 
+    if (is.loaded("routing_gr4j_sk") & run_compiled) {
+      ans <- .C("routing_gr4j_sk", as.double(Q9), as.double(Q1), 
                 as.integer(length(U)), as.double(x2), as.double(x3), 
                 as.double(R_0), Qr = double(length(U)), Qd = double(length(U)), 
                 R = double(length(U)))

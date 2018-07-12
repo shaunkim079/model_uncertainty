@@ -5,8 +5,8 @@ See inside scripts folder for code for running the method in the Adaptive Metrop
 state_uncertainty_trial_gr4j_sma_likelihood_prior_AM.r contains the prior and likelihood functions of the method.
 
 trials using 2 models:
-Adaptive_Metropolis_state_uncertainty_v5.6_gr4jsmarouting_shell.r
-Adaptive_Metropolis_state_uncertainty_v5.6_gr4jsma_shell.r
+Adaptive_Metropolis_state_uncertainty_v5.7_gr4jsmarouting_shell.r
+Adaptive_Metropolis_state_uncertainty_v5.7_gr4jsma_shell.r
 
 Input data is contained in the data folder
 
