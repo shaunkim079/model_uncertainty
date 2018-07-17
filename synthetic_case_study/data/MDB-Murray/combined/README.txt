@@ -1,0 +1,1 @@
+Climate data was from the Bureau of Meteorology Australian Water Availability Project (BAWAP) (http://www.csiro.au/awap/)
