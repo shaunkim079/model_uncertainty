@@ -15,13 +15,18 @@
 
 void sma_gr4j_sk(double *P, double *E, int *n,
 	 double *x1, double *param2, double *initial_state, double *state_error,
-         double *U, double *S, double *ET, int *success)
+         double *U, double *S, double *ET,
+		 double *state_S_ts, int *use_state_S_ts,
+				int *success)
 {
     int t;
     double Pn, En, Ps, St_x1, perc;
     double S_prev = *initial_state;
     for (t = 0; t < *n; t++) {
 		if (t > 0) {
+			if (*use_state_S_ts > 0){
+				S_prev = state_S_ts[t-1];
+			}
 			S_prev += state_error[t-1];
 		}
         Pn = max(P[t] - E[t], 0);

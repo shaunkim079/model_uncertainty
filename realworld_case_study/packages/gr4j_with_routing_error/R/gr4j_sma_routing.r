@@ -2,9 +2,9 @@
 
 gr4j.sma<-function(param, initial_state, state_error, input,
                       etmult = 1, return_state = FALSE, 
-                      transformed = FALSE, run_compiled = T){
+                      transformed = FALSE, run_compiled = T,
+                      state_S_ts=NA){
   tryerror<-try({
-    
     x1<-param[1]
     if(length(param)>1){
       param2<-param[2]
@@ -18,8 +18,10 @@ gr4j.sma<-function(param, initial_state, state_error, input,
     stopifnot(x1 >= 0)
     stopifnot(etmult >= 0)
     stopifnot(param2 > 0)
+    stopifnot(length(state_error) == (length(input$P)-1))
     
     if(is.loaded("sma_gr4j_sk") & run_compiled){
+
       P <- as.double(input$P)
       E <- as.double(input$E * etmult)
       initial_state <- as.double(initial_state)
@@ -30,6 +32,14 @@ gr4j.sma<-function(param, initial_state, state_error, input,
       U <- as.double(rep(0,n))
       S <- as.double(rep(0,n))
       ET <- as.double(rep(0,n))
+      
+      if(is.na(state_S_ts[1])){
+        state_S_ts<-as.double(rep(0,n-1))
+        use_state_S_ts<-as.integer(0)
+      } else {
+        state_S_ts<-as.double(state_S_ts)
+        use_state_S_ts<-as.integer(1)
+      }
       
       out <- .C("sma_gr4j_sk",
                 P=P,
@@ -42,6 +52,8 @@ gr4j.sma<-function(param, initial_state, state_error, input,
                 U=U,
                 S=S,
                 ET=ET,
+                state_S_ts=state_S_ts,
+                use_state_S_ts=use_state_S_ts,
                 success=as.integer(1))
       
       if(out$success!=1) stop("negative value in SMA simulation when there shouldn't be")
@@ -61,6 +73,9 @@ gr4j.sma<-function(param, initial_state, state_error, input,
       S_prev <- initial_state
       for (t in seq(1, length(P))) {
         if(t>1){
+          if(!is.na(state_S_ts[1])){
+            S_prev<-state_S_ts[t-1]
+          }
           S_prev <- S_prev + state_error[t-1]
         }
         Pn <- max(P[t] - E[t], 0)
@@ -71,6 +86,7 @@ gr4j.sma<-function(param, initial_state, state_error, input,
         if (Pn > 0) {
           Ps <- (x1 * (1 - St_x1^param2) * tanh(Pn/x1)/(1 + 
                                                           St_x1 * tanh(Pn/x1)))
+          # if(Ps<0) browser()
         }
         else {
           ET[t] <- (S_prev * (2 - St_x1) * tanh(En/x1)/(1 + 
@@ -78,6 +94,7 @@ gr4j.sma<-function(param, initial_state, state_error, input,
         }
         S[t] <- S_prev - ET[t] + Ps
         perc <- S[t] * (1 - (1 + ((4/9) * (S[t]/x1))^4)^(-0.25))
+        # perc<-0
         S[t] <- S[t] - perc
         U[t] <- perc + (Pn - Ps)
         S_prev <- S[t]
@@ -225,10 +242,14 @@ gr4jrouting.sim.sk<-function (U, x2, x3, x4, initial_state_R = 0, split = 0.9, r
         # initial condition in unit hydrograph
         if(is.na(initial_condition_UH[1])){
           initial_condition_UH<-rep(0,length(f)-1)
+          # initial_condition_UH<-rep(0,max(length(f)-1,1))
         }
         x_with_buffers<-c(x,rep(0,length(f)-1))
         y_manual<-rep(0,length(x_with_buffers))
-        y_manual[1:length(initial_condition_UH)]<-initial_condition_UH
+        if(length(initial_condition_UH)>0){
+          y_manual[1:length(initial_condition_UH)]<-initial_condition_UH
+        }
+        
         recorded_UH<-NULL
         for(i in 1:(length(y_manual)-length(f)+1)){
           current_UH<-y_manual[i:(i+length(f)-1)]+x_with_buffers[i]*f
@@ -237,7 +258,10 @@ gr4jrouting.sim.sk<-function (U, x2, x3, x4, initial_state_R = 0, split = 0.9, r
         }
         
         # get rid of buffers
-        y_manual<-y_manual[-((length(y_manual)-length(f)+2):length(y_manual))]
+        if(length(x_with_buffers)>length(x)){
+          y_manual<-y_manual[-((length(y_manual)-length(f)+2):length(y_manual))]
+        }
+        
         
         #y
         return(list(flow=y_manual,recorded_UH=recorded_UH))
@@ -303,7 +327,8 @@ gr4j.run<-function(param, initial_state_S, initial_state_R, state_error, input,
                    transformed = FALSE, run_compiled = T,
                    initial_condition_UH1=rep(0,ceiling(param[4])-1),
                    initial_condition_UH2=rep(0,floor(param[4])+length(ceiling(param[4]):ceiling(param[4]*2))-1),
-                   state_error_R){
+                   state_error_R,
+                   state_S_ts=NA){
   output_sma<-gr4j.sma(param=param[1],
                        initial_state=initial_state_S, 
                        state_error=state_error, 
@@ -311,7 +336,8 @@ gr4j.run<-function(param, initial_state_S, initial_state_R, state_error, input,
                        etmult = etmult, 
                        return_state = return_state, 
                        transformed = transformed, 
-                       run_compiled = run_compiled)
+                       run_compiled = run_compiled,
+                       state_S_ts=state_S_ts)
   if(is.na(output_sma[1])){
     return(NA)
   } else {

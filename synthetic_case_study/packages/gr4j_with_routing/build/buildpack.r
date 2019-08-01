@@ -5,7 +5,7 @@ library(RCurl)
 
 
 if(Sys.info()["sysname"]=="Linux"){
-  setwd("/data/kim079/model_optimisation_framework/packages")
+  setwd("/data/kim079/model_optimisation_framework_v2/packages")
 } else {
   setwd("C:/Users/kim079/Documents/model_optimisation_framework/packages")
 }
@@ -13,11 +13,11 @@ if(Sys.info()["sysname"]=="Linux"){
 # uninstall function
 source("gr4j_with_routing/build/uninst.r")
 
-if(is.loaded("sma_gr4j")){
+if(is.loaded("sma_gr4j_sk")){
   if(Sys.info()["sysname"]=="Linux"){
-    dyn.unload("gr4j_with_routing/src/gr4j.so")
+    dyn.unload("gr4j_with_routing/src/gr4j_with_routing.so")
   } else {
-    dyn.unload("gr4j_with_routing/src/gr4j.dll")
+    dyn.unload("gr4j_with_routing/src/gr4j_with_routing.dll")
   }
 }
 
@@ -44,7 +44,7 @@ compile <-function(pcknm){
 }
 
 
-pcknm <- "gr4j"
+pcknm <- "gr4j_with_routing"
 
 # Detach and uninstall package if already installe
 uninst(pcknm)

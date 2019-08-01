@@ -9,22 +9,22 @@
 #simulation model directly.
 
 
-perform_restart<-F
-if(perform_restart){
-  # RRparam_file<-"output/state_uncertainty/AM/bates/RRparameters_bates_30_1515467127.7433.csv.gz"
-  init_cov_file<-"output/state_uncertainty/AM/bates/CovPar_bates_30_1515467127.7433.csv.gz"
-  # SD2<-0.00857755438888274
-  SD2_file<-"output/state_uncertainty/AM/bates/SD2_bates_30_1515467127.7433.csv.gz"
-  theta_file<-"output/state_uncertainty/AM/bates/theta_bates_30_1515467127.7433.csv.gz"
-  restart_number<-500000 # this is the number of previous iterations to use
-} else {
-  rm(RRparam_file)
-  rm(init_cov_file)
-  rm(SD2_file)
-  rm(theta_file)
-  rm(restart_number)
-  
-}
+# perform_restart<-F
+# if(perform_restart){
+#   # RRparam_file<-"output/state_uncertainty/AM/bates/RRparameters_bates_30_1515467127.7433.csv.gz"
+#   init_cov_file<-"output/state_uncertainty/AM/bates/CovPar_bates_30_1515467127.7433.csv.gz"
+#   # SD2<-0.00857755438888274
+#   SD2_file<-"output/state_uncertainty/AM/bates/SD2_bates_30_1515467127.7433.csv.gz"
+#   theta_file<-"output/state_uncertainty/AM/bates/theta_bates_30_1515467127.7433.csv.gz"
+#   restart_number<-500000 # this is the number of previous iterations to use
+# } else {
+#   rm(RRparam_file)
+#   rm(init_cov_file)
+#   rm(SD2_file)
+#   rm(theta_file)
+#   rm(restart_number)
+#   
+# }
 
 
 if(length(commandArgs(TRUE))!=0){
@@ -71,7 +71,7 @@ RRparam_file<-"output/state_uncertainty/AM/bates/gr4j_params.csv"
 
 if(!exists("length_ts")) length_ts<-30 #365
 if(!exists("start_ts")) start_ts<-121
-initial_state_normaliser<-0.01
+initial_state_normaliser<-0.001
 initial_state_normaliser_R<-0.01
 # seed<-1496902861.98095 
 if(!exists("ITER")) ITER<-1000000
@@ -82,10 +82,10 @@ setwd(wd)
 
 if(exists("SD2_file")) SD2<-as.numeric(readLines(SD2_file))
 
-if(perform_restart | exists("theta_file")){
-  rm(initial_state_errors_initial_file)
-  rm(state_errors_initial_file)
-}
+# if(perform_restart | exists("theta_file")){
+#   rm(initial_state_errors_initial_file)
+#   rm(state_errors_initial_file)
+# }
 
 # source("scripts/gr4j_sma.r")
 # source("packages/gr4j/R/gr4j_sma.r")
@@ -551,8 +551,8 @@ population_flow_variance_trans<-population_flow_sd_trans^2
 # error_input_variance<-input_error_sd^2
 error_input_variance<-ensemble_rainfall_stats$sd^2
 
-logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted
-loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted
+logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8
+loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8
 
 #min_par<-c(0,0,1e-6)
 #max_par<-c(100,100,100)
@@ -635,7 +635,7 @@ data<-list(input=input_trial,E=E_input,model_param=actual_model_param,
 #            rating_flow_trans=rating_flow_trans,
 #            actual_obs_flow_trans=actual_obs_flow_trans)
 
-
+# browser()
 # check initialise params and test
 init_counter<-0
 init_fail<-T
@@ -646,7 +646,7 @@ while(init_fail){
   #     rnorm(length(actual_state_error),0,sd_zero_mean(actual_state_error)),
   #     rnorm(length(input_error),0,input_error_sd)),
   #   normalisers),log10(initial_state_normaliser)) #log10(0.01)
-  # logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error
+  # logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8
   # loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error
   
   # initial_params<-c(normalise(c(actual_initial_state,
@@ -905,7 +905,7 @@ for(i in start_iter:ITER){
   }
   
   ## 8 - Iterate
-  if(i%%1000000==0){
+  if((i%%1000000)==0){
     if(export_diagnostic){
       prefix<-paste("bates",start_ts,length_ts,seed,sep="_")
       # write parameters

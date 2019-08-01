@@ -8,9 +8,6 @@
 #that any parameter constraints (e.g., PAR1 > 0) must be built into the
 #simulation model directly.
 
-export_diagnostic<-F
-diagnostic_plot_interval<-20000
-
 if(length(commandArgs(TRUE))!=0){
   arguments <- commandArgs(TRUE)
   cat("arguments:",arguments,"\n")
@@ -30,35 +27,35 @@ if(length(commandArgs(TRUE))!=0){
   if(length(arguments)>12) SD2_file<-as.character(arguments[[13]])
   if(length(arguments)>13) theta_file<-as.character(arguments[[14]])
   
-  export_diagnostic<-T
-  diagnostic_plot_interval<-1e6
+  
+  
 
 }
 
-if(!exists("wd")) wd<-"C:/Users/kim079/Documents/model_optimisation_framework"
-if(!exists("input_error_sd")) input_error_sd<-0.1
-if(!exists("state_error_sd")) state_error_sd<-1
-if(!exists("discharge_error_sd")) discharge_error_sd<-0.01
-if(!exists("length_ts")) length_ts<-60
-# initial_state_normaliser<-0.01 
+# wd<-"C:/Users/kim079/Documents/model_optimisation_framework"
+# input_error_sd<-0.1
+# state_error_sd<-1
+# discharge_error_sd<-0.01
+# length_ts<-60
+# initial_state_normaliser<-0.1
 # init_cov_file<-"//pearceydata.csiro.au/data/kim079/model_optimisation_framework/output/state_uncertainty/AM/restarts/ts60_gr4jsmarouting_smallobserr/CovPar_0.1_1_0.01_60_1496644561.44581.csv.gz"
 # SD2<-0.0160691998016972 
 # theta_file<-"//pearceydata.csiro.au/data/kim079/model_optimisation_framework/output/state_uncertainty/AM/restarts/ts60_gr4jsmarouting_smallobserr/theta_0.1_1_0.01_60_1496644561.44581.csv.gz"
-# seed<-1496902861.98095 
-# output_dir<-"//pearceydata.csiro.au/data/kim079/model_optimisation_framework/output/state_uncertainty/AM/5.6_ts60_gr4jsmarouting_smallobserr"
-# ITER<-1e+06 
-# stop_update_covariance<-1 
+# seed<-1496902861.98095
+# output_dir<-"//pearceydata.csiro.au/data/kim079/model_optimisation_framework/output/state_uncertainty/AM/5.8_ts60_gr4jsmarouting_smallobserr"
+# ITER<-1e+06
+# stop_update_covariance<-1
 # restart_number<-5e+05 
 
 
 setwd(wd)
 #source("scripts/gr4j_sma.r")
-source("packages/gr4j_with_routing/R/gr4j_sma_routing.r")
-if(!is.loaded("routing_gr4j_sk")){
+source("packages/gr4j_with_routing_error/R/gr4j_sma_routing.r")
+if(!is.loaded("sma_gr4j_sk")){
   if(Sys.info()["sysname"]=="Linux"){
-    dyn.load("packages/gr4j_with_routing/src/gr4j_with_routing.so")
+    dyn.load("packages/gr4j_with_routing_error/src/gr4j_with_routing_error.so")
   } else {
-    dyn.load("packages/gr4j_with_routing/src/gr4j_with_routing.dll")
+    dyn.load("packages/gr4j_with_routing_error/src/gr4j_with_routing_error.dll")
   }
 }
 source("scripts/state_uncertainty_trial_gr4j_sma_likelihood_prior_AM.r")
@@ -118,19 +115,37 @@ tune<-function(scale, acc_rate){
 }
 
 set.seed(12321)
-
 #length_ts<-7
 ts_file<-"data/MDB-Murray/combined/combined_401012_sitev5.001.csv.gz"
-start_ts<-60
+start_ts<-5333 #60
 
 combined<-read.csv(ts_file,as.is=T,comment="#")
+all_min<-c()
+for(i in 1:(length(combined$rainfall.river)-60)){
+  all_min<-c(all_min,min(combined$rainfall.river[i:(i+60)]))
+}
+which(all_min==max(all_min))
 true_input_trial<-combined$rainfall.river[start_ts:(start_ts+length_ts-1)]
+# plot(true_input_trial,type="l")
+
 E_input<-combined$evap.river[start_ts:(start_ts+length_ts-1)]
 #true_input_trial<-runif(length_ts,0,20) #runif(length_ts,100,112)
 #E_input<-runif(length_ts,0,20) #runif(length_ts,100,105)
 #input_error_sd<-1e-1 #1e-1
 input_error<-rnorm(length(true_input_trial),mean=0,sd=input_error_sd) #sd=0.5
+# see if there's any negatives
 input_trial<-true_input_trial+input_error
+cat(length(which(input_trial<0)),"\n")
+# while(any(input_trial<0)){
+#   input_error<-rnorm(length(true_input_trial),mean=0,sd=input_error_sd) #sd=0.5
+#   input_trial<-true_input_trial+input_error
+# }
+# cat(length(which(input_trial<0)),"\n")
+# input_error[which(input_trial<0)]<-input_error[which(input_trial<0)]-input_trial[which(input_trial<0)]
+# hist(input_error)
+# input_error_sd<-sd(input_error)
+# input_trial<-true_input_trial+input_error
+
 input_trial<-pmax(input_trial,0)
 actual_state_error<-rnorm(length(input_trial)-1,mean=0,sd=state_error_sd) #1e-6 # minimum should be max_state_error_bound/max_normaliser_value
 #discharge_error_sd<-0.01 #0.01
@@ -138,22 +153,14 @@ actual_discharge_error<-rnorm(length(input_trial),mean=0,sd=discharge_error_sd) 
 true_input<-data.frame(P=true_input_trial,E=E_input)
 actual_model_param<-1000
 actual_initial_state<-500
-actual_initial_state_R<-100
-all_model_params<-c(actual_model_param,1,200,2)
-
-initial_condition_UH1<-rep(0,ceiling(all_model_params[4])-1)
-initial_condition_UH2<-rep(0,floor(all_model_params[4])+length(ceiling(all_model_params[4]):ceiling(all_model_params[4]*2))-1)
-
-
-tt<-gr4j.run(param=all_model_params, initial_state_S=actual_initial_state, initial_state_R=actual_initial_state_R, 
-              state_error=actual_state_error, input=true_input,initial_condition_UH1=initial_condition_UH1,initial_condition_UH2=initial_condition_UH2)
-
-#tt<-gr4j.sma(actual_model_param,actual_initial_state,actual_state_error,true_input)
+tt<-gr4j.sma(actual_model_param,actual_initial_state,actual_state_error,true_input)
 
 cat("actual_state_error_sd=",sd_zero_mean(actual_state_error),"\n")
 cat("input_error_sd=",sqrt(mean(input_error^2)),"\n")
 cat("actual_discharge_error_sd=",sqrt(mean(actual_discharge_error^2)),"\n")
 
+
+sum(dnorm(input_error,mean=0,sd=input_error_sd,log=T))+sum(dnorm(actual_discharge_error,0,discharge_error_sd,log=T))
 # input_error
 # normalise(actual_state_error,0.01)
 # normalise(actual_initial_state,0.0001)
@@ -175,8 +182,10 @@ set.seed(seed)
 #   ff<-c(ff,initial_state_normaliser)
 # }
 # hist(ff)
+
 initial_state_normaliser<-1/max(abs(actual_state_error))
-normalisers<-c(0.001,rep(initial_state_normaliser,length_ts-1),rep(1,length_ts),0.001)
+# initial_state_normaliser<-0.01
+normalisers<-c(0.001,rep(initial_state_normaliser,length_ts-1),rep(1,length_ts))
 #normalisers<-c(0.0001,rep(1e+29,length_ts-1),rep(1,length_ts))
 
 # error_discharge_variance<-sum(actual_discharge_error^2)/(length(actual_discharge_error)-1)
@@ -185,9 +194,8 @@ error_discharge_variance<-discharge_error_sd^2
 error_input_variance<-input_error_sd^2
 
 
-
-logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates4
-loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates4
+logprior_fun<-trial_log_prior4_gr4jwithoutrouting_allinitstates5
+loglikelihood_fun<-log_likelihood_trial4_gr4jwithoutrouting_allinitstates5
 
 #min_par<-c(0,0,1e-6)
 #max_par<-c(100,100,100)
@@ -204,18 +212,18 @@ loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates4
 #initial_params4.7<-c(600,rnorm(length(actual_state_error),0,3),rnorm(length(input_error),0,0.1))
 #params_min<-c(normalise(c(-1000,rep(-1000,length(actual_state_error)),rep(-1000,length(input_trial))),normalisers),log10(1e-12))
 #params_max<-c(normalise(c(1000,rep(1000,length(actual_state_error)),rep(1000,length(input_trial))),normalisers),log10(1e12))
-params_min<-c(-1000,rep(-1,length(actual_state_error)),rep(-1000,length(input_trial)),0,log10(1e-12)/10,rep(-1000,length(actual_state_error)))
-params_max<-c(1000,rep(1,length(actual_state_error)),rep(1000,length(input_trial)),all_model_params[3],log10(1e12)/10,rep(1000,length(actual_state_error)))
+params_min<-c(-1000,rep(-1,length(actual_state_error)),rep(-1000,length(input_trial)),log10(1e-12)/10,rep(-1000,length(actual_state_error)))
+params_max<-c(1000,rep(1,length(actual_state_error)),rep(1000,length(input_trial)),log10(1e12)/10,rep(1000,length(actual_state_error)))
 
+# NOTE: Here the observed discharge is calculated as tt-actual_discharge_error but in the paper the sign is reversed (i.e. tt+actual_discharge_error)
+# this should not make a difference to the results as long as the sign is kept consistent throughout the code
 data<-list(input=input_trial,E=E_input,model_param=actual_model_param,
            obs_discharge=tt-actual_discharge_error,
            error_discharge_variance=error_discharge_variance,error_input_variance=error_input_variance,
            error_input_variance_min=1e-20,error_input_variance_max=100,
            error_discharge_variance_min=1e-20,error_discharge_variance_max=100,
            state_sds_min=1e-60,state_sds_max=20,
-           normalisers=normalisers,
-           initial_state_R=actual_initial_state_R,
-           all_model_params=all_model_params)
+           normalisers=normalisers)
 
 # check initialise params and test
 init_counter<-0
@@ -227,12 +235,13 @@ while(init_fail){
   #     rnorm(length(actual_state_error),0,sd_zero_mean(actual_state_error)),
   #     rnorm(length(input_error),0,input_error_sd)),
   #   normalisers),log10(initial_state_normaliser)) #log10(0.01)
-  initial_params4.7<-c(normalise(c(actual_initial_state,actual_state_error,input_error,actual_initial_state_R),normalisers),log10(initial_state_normaliser)/10)
+  initial_params4.7<-c(normalise(c(actual_initial_state,actual_state_error,input_error),normalisers),log10(initial_state_normaliser)/10)
   logprior_init<-logprior_fun(initial_params4.7,params_min,params_max,data)
   loglike_init<-loglikelihood_fun(data,initial_params4.7)[[1]]
   if(!is.infinite(logprior_init) & !is.infinite(loglike_init)) init_fail<-F
   if(init_counter>1000) stop("Initialisation failed!!")
 }
+
 
 cor_plot_interval<-20000
 tune_scale<-T # tunes the scaling factor (SD2) according to the acceptance rate over the last tune_interval. From pymc3 (metropolis.py)
@@ -244,7 +253,7 @@ if(exists("SD2")){
   SD1  = SD2  #initial covariance matrix scaling factor (i0)
 } else {
   SD1  = 0.50  #initial covariance matrix scaling factor (i0)
-  SD2  = (2.4^2)/(length_ts*2+1) #from Haario #0.30 #0.009 #0.15  #adaptive covariance matrix scaling factor (1-i0) (lower scaling is higher acceptance) )
+  SD2  = (2.4^2)/(length_ts*2+1) #from Haario #0.30 #0.009 #0.15  #adaptive covariance matrix scaling factor (1-i0) (lower scaling is lower acceptance) )
 }
 if(!exists("stop_update_covariance")) stop_update_covariance<-0.5
 #ncores<-detectCores(logical=F)
@@ -448,13 +457,14 @@ for(i in start_iter:ITER){
   }
   
   ## 8 - Iterate
+  export_diagnostic<-T
   if(i%%2000==0){
     if(z > psi[i]){
       cur_discharge_error_sd<-sd_zero_mean(logL[[2]])
       all_discharge_error_sd<-c(all_discharge_error_sd,cur_discharge_error_sd)
     }
   }
-  if(i%%diagnostic_plot_interval==0){
+  if(i%%1000000==0){
     if(export_diagnostic){
       # write parameters
       if(!exists("output_dir")){
@@ -464,14 +474,13 @@ for(i in start_iter:ITER){
       png(output_name,height=1000)
     }
     cat("loglikelihood:",L[i],"\n")
-    layout(matrix(1:10,nrow=5,byrow=T))
-    state_normaliser<-10^(theta[1:i,length_ts+length_ts+2]*10)
+    layout(matrix(1:8,nrow=4,byrow=T))
+    state_normaliser<-10^(theta[1:i,length_ts+length_ts+1]*10)
     #all_state_normaliser<-cbind(state_normaliser,state_normaliser,state_normaliser,state_normaliser,state_normaliser,state_normaliser)
     all_state_normaliser<-matrix(rep(state_normaliser,length_ts-1),ncol=length_ts-1)
     all_normaliser<-cbind(rep(data$normalisers[1],length(state_normaliser)),
                           all_state_normaliser,
-                          matrix(1,nrow=length(state_normaliser),ncol=length_ts),
-                          rep(data$normalisers[length_ts*2+1],length(state_normaliser)))
+                          matrix(1,nrow=length(state_normaliser),ncol=length_ts))
 
     theta_unnorm<-cbind(inv.normalise(theta[1:i,-ncol(theta)],all_normaliser),state_normaliser)
 
@@ -481,40 +490,47 @@ for(i in start_iter:ITER){
     plot(theta_unnorm[,1],type="l")
     plot(theta_unnorm[,2],type="l")
     plot(theta_unnorm[,length_ts+1],type="l")
-    plot(theta_unnorm[,length_ts*2+1],type="l")
     #plot(theta_unnorm[,15],type="l")
     #plot(theta[!is.na(theta[,31]),31],type="l")
     #plot(theta[!is.na(theta[,61]),61],type="l")
     plot(state_normaliser,type="l",log="y",main=state_normaliser[length(state_normaliser)])
     logposterior<-L+Pr
+
     if(!all(is.infinite(logposterior[!is.na(logposterior)]))){
       #plot(logposterior[max(1,i-20000):i],type="l")
       plot(logposterior[1:i],type="l")
       state_sd_calc<-apply(theta_unnorm[1:i,2:length_ts],1,sd_zero_mean)
-      plot(x=state_sd_calc,y=logposterior[1:i],log="x")
+      plot(x=state_sd_calc,y=logposterior[1:i],log="x",main=paste("disch err sd:",cur_discharge_error_sd,"\nexpected:",discharge_error_sd))
       points(x=state_sd_calc[(length(state_sd_calc)-1999):length(state_sd_calc)],y=logposterior[(length(state_sd_calc)-1999):length(state_sd_calc)],col=3)
       points(x=state_sd_calc[1],y=logposterior[1],col=2,cex=4)
     }
-
-    # if(i%%10000==0){
+    # plot(10,xlim=c(0,1),ylim=c(0,1))
+    # text(x=0.5,y=0.5,paste("disch err sd:",cur_discharge_error_sd,"\nexpected:",discharge_error_sd,
+    #                    "\ninput err:",sd_zero_mean(theta_unnorm[i,(length_ts+1):(length_ts*2)]),"\nexpected:",input_error_sd))
+    
     boxplot(all_discharge_error_sd,main=paste("disch err sd:",cur_discharge_error_sd,"\nexpected:",discharge_error_sd))
     abline(h=discharge_error_sd,col=2,lty=2)
     boxplot(apply(theta_unnorm[1:i,(length_ts+1):(length_ts*2)],1,sd_zero_mean),main=paste("input err:",sd_zero_mean(theta_unnorm[i,(length_ts+1):(length_ts*2)]),"\nexpected:",input_error_sd))
     abline(h=input_error_sd,col=2,lty=2)
+    # boxplot(list(apply(theta_unnorm[1:i,(length_ts+1):(length_ts*2)],1,sd_zero_mean),all_discharge_error_sd))
+    
+    # if(i%%cor_plot_interval==0){
     #   # correlations
-    #   library(lattice)
     #   cor_theta<-cor(theta[1:i,])
     #   lp<-levelplot(cor_theta,ylim=c(nrow(cor_theta)+0.5,0.5),at=seq(-1,1,length.out=51))
     #   print(lp)
+    #   index_all_cor_theta<-i/cor_plot_interval
+    #   all_cor_theta[index_all_cor_theta,]<-c(cor_theta)
+    #   if(index_all_cor_theta>1 & i%%(cor_plot_interval*2)==0){
+    #     layout(1)
+    #     matplot(all_cor_theta[1:index_all_cor_theta,],type="l")
+    #   }
     # }
     if(export_diagnostic){
       dev.off()
     }
-
-
-    acceptance_rate<-length(which(Jump[!is.na(Jump)]==1))/length(Jump[!is.na(Jump)])
-    cat("total acceptance_rate =",acceptance_rate,"\n")
   }
+  
   # if(i%%cor_plot_interval==0){
   #   # correlations
   #   cor_theta<-cor(theta[1:i,])
@@ -559,10 +575,11 @@ output_name<-paste0(output_dir,"/SD2_",prefix,".csv")
 write.table(SD2,output_name,row.names=F,quote=F,col.names=F,sep=",")
 system(paste(gzip,output_name))
 
+
 output_name<-paste0(output_dir,"/scaling_",prefix,".png")
 png(output_name)
 layout(1)
-plot(theta[1:i,length_ts+length_ts+2],type="l")
+plot(theta[1:i,length_ts+length_ts+1],type="l")
 dev.off()
 
 # write Covariance

@@ -13,7 +13,7 @@
 #endif
 
 
-void sma_gr4j(double *P, double *E, int *n,
+void sma_gr4j_sk(double *P, double *E, int *n,
 	 double *x1, double *param2, double *initial_state, double *state_error,
          double *U, double *S, double *ET, int *success)
 {
@@ -54,7 +54,7 @@ void sma_gr4j(double *P, double *E, int *n,
     }
 }
 
-void routing_gr4j(double *Q9, double *Q1, int *n,
+void routing_gr4j_sk(double *Q9, double *Q1, int *n,
              double *x2, double *x3, double *R_0,
              double *Qr, double *Qd, double *R)
 {
