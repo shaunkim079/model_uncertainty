@@ -196,8 +196,8 @@ error_input_variance<-input_error_sd^2
 
 
 
-logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates5
-loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates5
+logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates5_2
+loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates5_v2
 
 #min_par<-c(0,0,1e-6)
 #max_par<-c(100,100,100)

@@ -9,17 +9,17 @@ if(length(commandArgs(TRUE))!=0){
 
 if(Sys.info()["sysname"]=="Linux"){
   wd<-"/data/kim079/model_optimisation_framework_v2"
-  rscript<-"/data/kim079/model_optimisation_framework_v2/scripts/Adaptive_Metropolis_state_uncertainty_bates_routing_error_adjusted_likelihood_v5.8.r"
+  rscript<-"/data/kim079/model_optimisation_framework_v2/scripts/Adaptive_Metropolis_state_uncertainty_bates_routing_error_adjusted_likelihood_v5.9.r"
 } else {
   wd<-"C:/Users/kim079/Documents/model_optimisation_framework"
-  rscript<-"C:/Users/kim079/Documents/model_optimisation_framework/scripts/Adaptive_Metropolis_state_uncertainty_bates_routing_error_adjusted_likelihood_v5.8.r"
+  rscript<-"C:/Users/kim079/Documents/model_optimisation_framework/scripts/Adaptive_Metropolis_state_uncertainty_bates_routing_error_adjusted_likelihood_v5.9.r"
 }
 
 setwd(wd)
 
 # output_dir<-"//pearceydata.csiro.au/data/kim079/model_optimisation_framework_v2/output/state_uncertainty/AM/bates"
 
-output_dir<-"//lw-osm-03-cdc.it.csiro.au/OSM_CBR_LW_TVD_MDBA_work/8_Working/7_Shaun/state_uncertainty/AM/bates/adjusted_likelihood_v5.8"
+output_dir<-"//lw-osm-03-cdc.it.csiro.au/OSM_CBR_LW_TVD_MDBA_work/8_Working/7_Shaun/state_uncertainty/AM/bates/adjusted_likelihood_v5.9"
 # start_ts<-1
 if(!exists("start_ts")) start_ts<-1 #1,61,121,181,241,301
 length_ts<-60

@@ -551,8 +551,8 @@ population_flow_variance_trans<-population_flow_sd_trans^2
 # error_input_variance<-input_error_sd^2
 error_input_variance<-ensemble_rainfall_stats$sd^2
 
-logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8
-loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8
+logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8_v2
+loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8_v2
 
 #min_par<-c(0,0,1e-6)
 #max_par<-c(100,100,100)

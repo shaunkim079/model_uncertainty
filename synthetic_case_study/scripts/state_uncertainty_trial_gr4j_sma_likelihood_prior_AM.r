@@ -1650,6 +1650,99 @@ log_likelihood_trial4_gr4jwithrouting_allinitstates5<-function(data,params){
 }
 
 
+# only sample state error and input error using discharge error sd sd and input error sd sd, using distribution of sample variance #############################
+# https://en.wikipedia.org/wiki/Variance#Distribution_of_the_sample_variance
+log_likelihood_trial4_gr4jwithrouting_allinitstates5_v2<-function(data,params){
+  #library(Brobdingnag,lib.loc="packages")
+  # Cochran's theorem shows that s^2 follows a scaled chi-squared distribution
+  logd_sample_variance<-function(variance,N,expected_variance){
+    frac<-variance/expected_variance
+    # TODO: brobdingnag
+    #frac<-as.brob(variance)/as.brob(expected_variance)
+    return(dens=dchisq(frac*(N-1),N-1,log=T)+log(N-1))
+  }
+  sd_zero_mean<-function(x) sqrt(mean(x^2))
+  var_zero_mean<-function(x) sum(x^2)/(length(x)-1)
+  #   inv.normalise<-function(x,factor){
+  #     x/factor
+  #   }
+  length_ts<-length(data$input)
+  state_normaliser<-10^(params[length_ts+length_ts+2]*10)
+  params_unnorm<-inv.normalise(params[1:(length_ts*2+1)],c(data$normalisers[1],rep(state_normaliser,length_ts-1),data$normalisers[(length_ts+1):(length_ts*2)],data$normalisers[length_ts*2+1]))
+  initial_state<-params_unnorm[1]
+  state_error<-params_unnorm[2:length_ts]
+  input_error<-params_unnorm[(length_ts+1):(length_ts+length_ts)]
+  #var_zero_mean(input_error)
+  init_state_R<-params_unnorm[length_ts*2+1]
+  
+  error_discharge_variance<-data$error_discharge_variance
+  error_input_variance<-data$error_input_variance
+  
+  input_ts<-data$input-input_error
+  E_ts<-data$E
+  input<-data.frame(P=input_ts,E=E_ts)
+  model_run<-gr4j.run(param=data$all_model_params, initial_state_S=initial_state, initial_state_R=init_state_R, 
+                      state_error=state_error, input=input)
+  
+  if(!is.na(model_run[1])){
+    error_discharge<-model_run-data$obs_discharge
+    #var_zero_mean(error_discharge)
+    log_likelihood_error_discharge<-sum(dnorm(error_discharge,0,sqrt(error_discharge_variance),log=T))
+    
+    error_discharge_variance_calc<-sum(error_discharge^2)/(length(error_discharge))
+    #cat("error_discharge_variance_calc =",error_discharge_variance_calc,"\n")
+    log_likelihood_error_discharge_variance<-logd_sample_variance(variance=error_discharge_variance_calc,N=length(error_discharge),expected_variance=error_discharge_variance)  
+    #log_likelihood_error_discharge_variance<-logd_sample_variance(variance=error_discharge_variance_calc,N=100000,expected_variance=error_discharge_variance)  
+    #     if(is.infinite(log_likelihood_error_discharge_variance)){
+    #       browser()
+    #     }
+    
+    log_likelihood_error_input<-sum(dnorm(input_error,0,sqrt(error_input_variance),log=T))
+    
+    error_input_variance_calc<-sum(input_error^2)/(length(input_error))
+    #cat("error_input_variance_calc =",error_input_variance_calc,"\n")
+    #if(error_input_variance_calc<error_input_variance) browser()
+    log_likelihood_error_input_variance<-logd_sample_variance(variance=error_input_variance_calc,N=length(input_error),expected_variance=error_input_variance)
+    #log_likelihood_error_input_variance<-logd_sample_variance(variance=error_input_variance_calc,N=100000,expected_variance=error_input_variance)
+    # for testing
+    #log_likelihood_error_input_variance<-dnorm(error_input_variance_calc/error_input_variance,1,sd=0.14,log=T)
+    #     if(is.infinite(log_likelihood_error_input_variance)){
+    #       browser()
+    #     }
+    #     state_error_sd<-params_unnorm[(length_ts+length_ts)+1]
+    #     log_likelihood_state_error_sd<-sum(dnorm(state_error,mean=0,sd=state_error_sd,log=T))
+    #     if(is.nan(log_likelihood_state_error_sd)) log_likelihood_state_error_sd<- -Inf
+    
+    # discharge error mean likelihood assuming true mean is zero
+    error_discharge_mean_calc<-mean(error_discharge)
+    log_likelihood_error_discharge_mean_calc<-dnorm(error_discharge_mean_calc,mean=0,sd=sqrt(error_discharge_variance)/sqrt(length(error_discharge)),log=T)
+    
+    # input error mean likelihood assuming true mean is zero
+    error_input_mean_calc<-mean(input_error)
+    log_likelihood_error_input_mean_calc<-dnorm(error_input_mean_calc,mean=0,sd=sqrt(error_input_variance)/sqrt(length(input_error)),log=T)
+    
+    # I'm adding the prior for discharge here for convenience
+    discharge_error_min<--10
+    discharge_error_max<-10
+    error_discharge_prior<-sum(dunif(error_discharge,min=discharge_error_min,max=discharge_error_max,log=T))
+    
+    combined_log_likehood<-log_likelihood_error_input+log_likelihood_error_discharge #+error_discharge_prior
+    # log_likelihood_error_input_variance+
+    # log_likelihood_error_discharge_variance+
+    # log_likelihood_error_discharge_mean_calc+
+    # log_likelihood_error_input_mean_calc+ #+log_likelihood_state_error_sd
+    #cat("log_likelihood_error_input_variance =",log_likelihood_error_input_variance,"\n")
+    
+    #if(is.infinite(combined_log_likehood)) browser()
+    # TODO: check that small probabilities are not given -Inf likelihoods
+    
+    return(list(combined_log_likehood=combined_log_likehood,error_discharge=error_discharge))
+  } else {
+    return(list(combined_log_likehood=-Inf,error_discharge=NA))
+  }
+  
+}
+
 trial_log_prior4_gr4jwithrouting_allinitstates5<-function(params,min,max,data,likelihood=NULL){
   #   inv.normalise<-function(x,factor){
   #     x/factor
@@ -1726,6 +1819,11 @@ trial_log_prior4_gr4jwithrouting_allinitstates5<-function(params,min,max,data,li
   
 }
 
+trial_log_prior4_gr4jwithrouting_allinitstates5<-function(params,min,max,data,likelihood=NULL){
+  
+  return(0)
+  
+}
 
 # only sample state error and input error using discharge error sd sd and input error sd sd, using distribution of sample variance #############################
 # https://en.wikipedia.org/wiki/Variance#Distribution_of_the_sample_variance
@@ -2278,6 +2376,100 @@ log_likelihood_trial4_gr4jwithoutrouting_allinitstates5<-function(data,params){
 }
 
 
+# only sample state error and input error using discharge error sd sd and input error sd sd, using distribution of sample variance #############################
+# https://en.wikipedia.org/wiki/Variance#Distribution_of_the_sample_variance
+log_likelihood_trial4_gr4jwithoutrouting_allinitstates5_v2<-function(data,params){
+  #library(Brobdingnag,lib.loc="packages")
+  # Cochran's theorem shows that s^2 follows a scaled chi-squared distribution
+  logd_sample_variance<-function(variance,N,expected_variance){
+    frac<-variance/expected_variance
+    # TODO: brobdingnag
+    #frac<-as.brob(variance)/as.brob(expected_variance)
+    return(dens=dchisq(frac*(N-1),N-1,log=T)+log(N-1))
+  }
+  sd_zero_mean<-function(x) sqrt(mean(x^2))
+  var_zero_mean<-function(x) sum(x^2)/(length(x)-1)
+  #   inv.normalise<-function(x,factor){
+  #     x/factor
+  #   }
+  length_ts<-length(data$input)
+  state_normaliser<-10^(params[length_ts+length_ts+1]*10)
+  params_unnorm<-inv.normalise(params[1:(length_ts*2)],c(data$normalisers[1],rep(state_normaliser,length_ts-1),data$normalisers[(length_ts+1):(length_ts*2)]))
+  initial_state<-params_unnorm[1]
+  state_error<-params_unnorm[2:length_ts]
+  input_error<-params_unnorm[(length_ts+1):(length_ts+length_ts)]
+  #var_zero_mean(input_error)
+  
+  error_discharge_variance<-data$error_discharge_variance
+  error_input_variance<-data$error_input_variance
+  
+  input_ts<-data$input-input_error
+  E_ts<-data$E
+  input<-data.frame(P=input_ts,E=E_ts)
+  model_run<-gr4j.sma(param=data$model_param,initial_state=initial_state,state_error=state_error,input=input)
+  
+  if(!is.na(model_run[1])){
+    error_discharge<-model_run-data$obs_discharge
+    #var_zero_mean(error_discharge)
+    log_likelihood_error_discharge<-sum(dnorm(error_discharge,0,sqrt(error_discharge_variance),log=T))
+    
+    error_discharge_variance_calc<-sum(error_discharge^2)/(length(error_discharge))
+    #cat("error_discharge_variance_calc =",error_discharge_variance_calc,"\n")
+    log_likelihood_error_discharge_variance<-logd_sample_variance(variance=error_discharge_variance_calc,N=length(error_discharge),expected_variance=error_discharge_variance)  
+    #log_likelihood_error_discharge_variance<-logd_sample_variance(variance=error_discharge_variance_calc,N=100000,expected_variance=error_discharge_variance)  
+    #     if(is.infinite(log_likelihood_error_discharge_variance)){
+    #       browser()
+    #     }
+    
+    
+    log_likelihood_error_input<-sum(dnorm(input_error,0,sqrt(error_input_variance),log=T))
+    
+    error_input_variance_calc<-sum(input_error^2)/(length(input_error))
+    #cat("error_input_variance_calc =",error_input_variance_calc,"\n")
+    #if(error_input_variance_calc<error_input_variance) browser()
+    log_likelihood_error_input_variance<-logd_sample_variance(variance=error_input_variance_calc,N=length(input_error),expected_variance=error_input_variance)
+    #log_likelihood_error_input_variance<-logd_sample_variance(variance=error_input_variance_calc,N=100000,expected_variance=error_input_variance)
+    # for testing
+    #log_likelihood_error_input_variance<-dnorm(error_input_variance_calc/error_input_variance,1,sd=0.14,log=T)
+    #     if(is.infinite(log_likelihood_error_input_variance)){
+    #       browser()
+    #     }
+    #     state_error_sd<-params_unnorm[(length_ts+length_ts)+1]
+    #     log_likelihood_state_error_sd<-sum(dnorm(state_error,mean=0,sd=state_error_sd,log=T))
+    #     if(is.nan(log_likelihood_state_error_sd)) log_likelihood_state_error_sd<- -Inf
+    
+    # discharge error mean likelihood assuming true mean is zero
+    error_discharge_mean_calc<-mean(error_discharge)
+    log_likelihood_error_discharge_mean_calc<-dnorm(error_discharge_mean_calc,mean=0,sd=sqrt(error_discharge_variance)/sqrt(length(error_discharge)),log=T)
+    
+    # input error mean likelihood assuming true mean is zero
+    error_input_mean_calc<-mean(input_error)
+    log_likelihood_error_input_mean_calc<-dnorm(error_input_mean_calc,mean=0,sd=sqrt(error_input_variance)/sqrt(length(input_error)),log=T)
+    
+    # I'm adding the prior for discharge here for convenience
+    discharge_error_min<--10
+    discharge_error_max<-10
+    error_discharge_prior<-sum(dunif(error_discharge,min=discharge_error_min,max=discharge_error_max,log=T))
+    
+    combined_log_likehood<-log_likelihood_error_input+log_likelihood_error_discharge #+error_discharge_prior #+log_likelihood_state_error_sd
+    # log_likelihood_error_input_variance+
+    # log_likelihood_error_discharge_variance+
+    # log_likelihood_error_discharge_mean_calc+
+    # log_likelihood_error_input_mean_calc+
+    
+    
+    #cat("log_likelihood_error_input_variance =",log_likelihood_error_input_variance,"\n")
+    
+    #if(is.infinite(combined_log_likehood)) browser()
+    # TODO: check that small probabilities are not given -Inf likelihoods
+    
+    return(list(combined_log_likehood=combined_log_likehood,error_discharge=error_discharge))
+  } else {
+    return(list(combined_log_likehood=-Inf,error_discharge=NA))
+  }
+  
+}
+
 trial_log_prior4_gr4jwithoutrouting_allinitstates5<-function(params,min,max,data,likelihood=NULL){
   #   inv.normalise<-function(x,factor){
   #     x/factor
@@ -2349,6 +2541,12 @@ trial_log_prior4_gr4jwithoutrouting_allinitstates5<-function(params,min,max,data
   
 }
 
+
+trial_log_prior4_gr4jwithoutrouting_allinitstates5_v2<-function(params,min,max,data,likelihood=NULL){
+  
+  return(0)
+  
+}
 
 
 # only sample state error and input error using discharge error sd sd and input error sd sd, using distribution of sample variance #############################
@@ -4229,6 +4427,202 @@ log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error
 }
 
 
+# only sample state error and input error using discharge error sd sd and input error sd sd, using distribution of sample variance #############################
+# https://en.wikipedia.org/wiki/Variance#Distribution_of_the_sample_variance
+log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8_v2<-function(data,params){
+  #library(Brobdingnag,lib.loc="packages")
+  # Cochran's theorem shows that s^2 follows a scaled chi-squared distribution
+  logd_sample_variance<-function(variance,N,expected_variance){
+    frac<-variance/expected_variance
+    # TODO: brobdingnag
+    #frac<-as.brob(variance)/as.brob(expected_variance)
+    return(dens=dchisq(frac*(N-1),N-1,log=T)+log(N-1))
+  }
+  sd_zero_mean<-function(x) sqrt(mean(x^2))
+  var_zero_mean<-function(x) sum(x^2)/(length(x)-1)
+  #   inv.normalise<-function(x,factor){
+  #     x/factor
+  #   }
+  
+  length_ts<-length(data$input)
+  state_normaliser<-10^(params[2*length_ts+data$number_of_sampled_inputs+1]*10)
+  
+  state_normaliser_R<-10^(params[2*length_ts+data$number_of_sampled_inputs+2]*10)
+  # params_unnorm<-inv.normalise(params[1:(length_ts*2+1)],c(data$normalisers[1],
+  #                                                          rep(state_normaliser,length_ts-1),
+  #                                                          data$normalisers[(length_ts+1):(length_ts*2)],
+  #                                                          data$normalisers[length_ts*2+1]))
+  
+  params_unnorm<-inv.normalise(params[1:(length_ts*2+data$number_of_sampled_inputs)],
+                               c(data$normalisers[1],
+                                 rep(state_normaliser,length_ts-1),
+                                 data$normalisers[(length_ts+1):(length_ts+data$number_of_sampled_inputs)],
+                                 data$normalisers[length_ts+data$number_of_sampled_inputs+1],
+                                 rep(state_normaliser_R,length_ts-1)))
+  
+  initial_state<-params_unnorm[1]
+  state_error<-params_unnorm[2:length_ts]
+  input_error<-params_unnorm[(length_ts+1):(length_ts+data$number_of_sampled_inputs)]
+  #var_zero_mean(input_error)
+  init_state_R<-params_unnorm[length_ts+data$number_of_sampled_inputs+1]
+  state_error_R<-params_unnorm[(length_ts+data$number_of_sampled_inputs+2):(2*length_ts+data$number_of_sampled_inputs)]
+  
+  
+  population_flow_variance_trans<-data$population_flow_variance_trans
+  # error_discharge_variance<-data$error_discharge_variance
+  error_input_variance<-data$error_input_variance
+  
+  # browser()
+  # TODO: REALLY IMPORTANT!!!! have to have box-cox untransformed rainfall data here before the simulation!!!
+  
+  # transform rainfall data, introduce the error, then untransform again to simulate
+  input_ts<-data$input
+  input_trans<-rep(NA,data$number_of_sampled_inputs)
+  input_trans_with_error<-rep(NA,data$number_of_sampled_inputs)
+  input_untrans_with_error<-rep(NA,data$number_of_sampled_inputs)
+  log_likelihoods_input<-rep(NA,data$number_of_sampled_inputs)
+  input_not_zero<-which(input_ts!=0)
+  for(ii in 1:data$number_of_sampled_inputs){
+    # TODO: move trans below to data input to improve efficiency
+    input_trans[ii]<-bc_transform_data(data$input[input_not_zero[ii]],
+                                       c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
+    input_trans_with_error[ii]<-input_trans[ii]-input_error[ii]
+    
+    input_untrans_with_error[ii]<-inverse_bc_transform_data(input_trans_with_error[ii],
+                                                            c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],
+                                                              data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
+    
+    # # WTF is below??!!
+    # log_likelihoods_input[ii]<-dnorm(data$error_input_variance[input_not_zero[ii]],
+    #                                  mean=input_trans[ii],
+    #                                  sd=sqrt(data$error_input_variance[input_not_zero[ii]]),log = T)
+    log_likelihoods_input[ii]<-dnorm(input_trans_with_error[ii],
+                                     mean=input_trans[ii],
+                                     sd=sqrt(data$error_input_variance[input_not_zero[ii]]),log = T)
+  }
+  # log_likelihoods_input<-log_likelihoods_input[is.finite(log_likelihoods_input)]
+  
+  input_ts[which(input_ts!=0)]<-input_untrans_with_error
+  
+  E_ts<-data$E
+  input<-data.frame(P=input_ts,E=E_ts)
+  model_run<-gr4j.run(param=data$all_model_params, initial_state_S=initial_state, initial_state_R=init_state_R, 
+                      state_error=state_error, input=input, state_error_R=state_error_R)/1000*data$area_m2/86400
+  if(!is.na(model_run[1])){
+    
+    # calculate for each 10 min
+    sim_flow<-model_run*60*10
+    # sim_10min<-c()
+    # for(i in 1:length(sim_flow)){
+    #   sim_10min<-c(sim_10min,rep(sim_flow[i],24*6))
+    # }
+    
+    
+    sim_flow_trans<-bc_transform_data(sim_flow,data$rating_error_uncertainty$lambda)
+    # sim_flow_trans<-log_bc_transform(model_run,data$rating_error_uncertainty$bc_lambdas)
+    if(all(!is.na(sim_flow_trans))){
+      # residual_trans<-data$rating_flow_trans-sim_flow_trans # ??
+      # sd_zero_mean(residual_trans)
+      # residual_trans<-sim_flow_trans-data$rating_flow_trans
+      # sd_zero_mean(residual_trans)
+      
+      # residual_trans<-sim_flow_trans-log_bc_transform(data$obs_discharge,data$rating_error_uncertainty$bc_lambdas)
+      
+      # agregate obs flow - assume that instantaneous flow is equivalent to 10 min volume!
+      sim_flow_per_day<-sim_flow_trans*24*6
+      indices<-sort(rep(1:length(sim_flow),24*6))
+      obs_trans_agg<-aggregate(data$rating_flow_trans,by=list(indices),sum)[,2]
+      
+      residual_trans<-sim_flow_per_day-obs_trans_agg
+      # plot(sim_flow_per_day,type="l")
+      # lines(obs_trans_agg,col="2",lty=2)
+      # plot(residual_trans,type="l")
+      # 
+      # plot(sim_flow_trans,type="l")
+      # lines(data$rating_flow_trans,col="2",lty=2)
+      # 
+      # plot(inverse_bc_transform_data(sim_flow_trans,data$rating_error_uncertainty$lambda),type="l")
+      # lines(inverse_bc_transform_data(data$rating_flow_trans,data$rating_error_uncertainty$lambda),col=2)
+      
+      # assume that variances are additive:
+      population_flow_variance_trans_agg<-population_flow_variance_trans*24*6
+      
+      # sd_zero_mean(residual_trans)
+      # error_discharge<-model_run-data$obs_discharge
+      #var_zero_mean(error_discharge)
+      error_discharge_variance_calc<-sum(residual_trans^2)/(length(residual_trans))
+      # sqrt(error_discharge_variance_calc)
+      #cat("error_discharge_variance_calc =",error_discharge_variance_calc,"\n")
+      log_likelihood_error_discharge_variance<-logd_sample_variance(variance=error_discharge_variance_calc,N=length(residual_trans),expected_variance=population_flow_variance_trans_agg)
+      #log_likelihood_error_discharge_variance<-logd_sample_variance(variance=error_discharge_variance_calc,N=100000,expected_variance=error_discharge_variance)  
+      #     if(is.infinite(log_likelihood_error_discharge_variance)){
+      #       browser()
+      #     }
+      log_likelihood_error_discharge<-sum(dnorm(residual_trans,0,sqrt(population_flow_variance_trans_agg),log=T))
+      
+      # input_trans<-rep(NA,data$number_of_sampled_inputs)
+      # input_trans_with_error<-rep(NA,data$number_of_sampled_inputs)
+      # log_likelihoods_input<-rep(NA,data$number_of_sampled_inputs)
+      # input_not_zero<-which(input_ts!=0)
+      # for(ii in 1:data$number_of_sampled_inputs){
+      #   # TODO: move trans below to data input to improve efficiency
+      #   input_trans[ii]<-bc_transform_data(data$input[input_not_zero[ii]],
+      #                                      c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
+      #   input_trans_with_error[ii]<-input_trans[ii]-input_error[ii]
+      #   log_likelihoods_input[ii]<-dnorm(data$error_input_variance[input_not_zero[ii]],
+      #                                    mean=input_trans[ii],
+      #                                    sd=sqrt(data$error_input_variance[input_not_zero[ii]]),log = T)
+      # }
+      # log_likelihoods_input<-log_likelihoods_input[is.finite(log_likelihoods_input)]
+      
+      # error_input_variance_calc<-sum(input_error^2)/(length(input_error))
+      #cat("error_input_variance_calc =",error_input_variance_calc,"\n")
+      #if(error_input_variance_calc<error_input_variance) browser()
+      # log_likelihood_error_input_variance<-logd_sample_variance(variance=error_input_variance_calc,N=length(input_error),expected_variance=error_input_variance)
+      #log_likelihood_error_input_variance<-logd_sample_variance(variance=error_input_variance_calc,N=100000,expected_variance=error_input_variance)
+      # for testing
+      #log_likelihood_error_input_variance<-dnorm(error_input_variance_calc/error_input_variance,1,sd=0.14,log=T)
+      #     if(is.infinite(log_likelihood_error_input_variance)){
+      #       browser()
+      #     }
+      #     state_error_sd<-params_unnorm[(length_ts+length_ts)+1]
+      #     log_likelihood_state_error_sd<-sum(dnorm(state_error,mean=0,sd=state_error_sd,log=T))
+      #     if(is.nan(log_likelihood_state_error_sd)) log_likelihood_state_error_sd<- -Inf
+      
+      # discharge error mean likelihood assuming true mean is zero
+      error_discharge_mean_calc<-mean(residual_trans)
+      log_likelihood_error_discharge_mean_calc<-dnorm(error_discharge_mean_calc,mean=0,sd=sqrt(population_flow_variance_trans_agg)/sqrt(length(residual_trans)),log=T)
+      
+      # I'm adding the prior for discharge here for convenience
+      discharge_error_min<--sqrt(population_flow_variance_trans_agg)*5
+      discharge_error_max<-sqrt(population_flow_variance_trans_agg)*5
+      error_discharge_prior<-sum(dunif(residual_trans,min=discharge_error_min,max=discharge_error_max,log=T))
+      
+      # input error mean likelihood assuming true mean is zero
+      # error_input_mean_calc<-mean(input_error)
+      # log_likelihood_error_input_mean_calc<-dnorm(error_input_mean_calc,mean=0,sd=sqrt(error_input_variance)/sqrt(length(input_error)),log=T)
+      combined_log_likehood<-log_likelihood_error_discharge+
+        # log_likelihood_error_discharge_variance+
+        # log_likelihood_error_discharge_mean_calc+
+        sum(log_likelihoods_input)+ #+log_likelihood_error_input_mean_calc #+log_likelihood_state_error_sd #+log_likelihood_error_input_variance
+        # error_discharge_prior
+      #cat("log_likelihood_error_input_variance =",log_likelihood_error_input_variance,"\n")
+      
+      #if(is.infinite(combined_log_likehood)) browser()
+      # TODO: check that small probabilities are not given -Inf likelihoods
+      
+      return(list(combined_log_likehood=combined_log_likehood,error_discharge=residual_trans,error_discharge_variance_calc=error_discharge_variance_calc))
+      
+    } else {
+      return(list(combined_log_likehood=-Inf,error_discharge=NA,error_discharge_variance_calc=NA))
+    }
+    
+  } else {
+    return(list(combined_log_likehood=-Inf,error_discharge=NA,error_discharge_variance_calc=NA))
+  }
+  
+}
+
 
 trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8<-function(params,min,max,data,likelihood=NULL){
   #   inv.normalise<-function(x,factor){
@@ -4344,6 +4738,12 @@ trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adju
   
 }
 
+
+trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8_v2<-function(params,min,max,data,likelihood=NULL){
+
+  return(0)
+  
+}
 
 
 # only sample state error and input error using discharge error sd sd and input error sd sd, using distribution of sample variance #############################
