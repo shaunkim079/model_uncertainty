@@ -33,30 +33,52 @@ if(length(commandArgs(TRUE))!=0){
   
   start_ts<-as.numeric(arguments[[1]])
   length_ts<-as.numeric(arguments[[2]])
-  if(length(arguments)>2) output_dir<-as.character(arguments[[3]])
-  if(length(arguments)>3) initial_state_errors_initial_file<-as.character(arguments[[4]])
-  if(length(arguments)>4) state_errors_initial_file<-as.character(arguments[[5]])
+  if(length(arguments)>2) initial_seed<-as.numeric(arguments[[3]])
+  if(length(arguments)>3) output_dir<-as.character(arguments[[4]])
+  if(length(arguments)>4) initial_state_errors_initial_file<-as.character(arguments[[5]])
+  if(length(arguments)>5) state_errors_initial_file<-as.character(arguments[[6]])
   
-  if(length(arguments)>5) init_cov_file<-as.character(arguments[[6]])
-  if(length(arguments)>6) SD2_file<-as.character(arguments[[7]])
-  if(length(arguments)>7) theta_file<-as.character(arguments[[8]])
-  if(length(arguments)>8) restart_number<-as.numeric(arguments[[9]])
-  if(length(arguments)>9) seed<-as.numeric(arguments[[10]])
-  if(length(arguments)>10) stop_update_covariance<-as.numeric(arguments[[11]])
-  if(length(arguments)>11) ITER<-as.numeric(arguments[[12]])
+  if(length(arguments)>6) init_cov_file<-as.character(arguments[[7]])
+  if(length(arguments)>7) SD2_file<-as.character(arguments[[8]])
+  if(length(arguments)>8) theta_file<-as.character(arguments[[9]])
+  if(length(arguments)>9) restart_number<-as.numeric(arguments[[10]])
+  if(length(arguments)>10) seed<-as.numeric(arguments[[11]])
+  if(length(arguments)>11) stop_update_covariance<-as.numeric(arguments[[12]])
+  if(length(arguments)>12) ITER<-as.numeric(arguments[[13]])
 }
 
+# theta_file<-"C:/Users/kim079/Documents/model_optimisation_framework/output/state_uncertainty/AM/bates/adjusted_likelihood_statevalues_v4.2/theta_bates_31_30_2_1590105767.43602.csv.gz"
 
+if(exists("initial_state_errors_initial_file")) rm("initial_state_errors_initial_file")
+if(exists("state_errors_initial_file")) rm("state_errors_initial_file")
+
+if(exists("init_cov_file")){
+  if(is.na(init_cov_file) | init_cov_file=="NA") rm("init_cov_file")
+}
+
+if(exists("SD2_file")){
+  if(is.na(SD2_file) | SD2_file=="NA") rm("SD2_file")
+}
+
+if(exists("restart_number")){
+  if(is.na(restart_number) | restart_number=="NA") rm("restart_number")
+}
 
 if(Sys.info()["sysname"]=="Linux"){
-  wd<-"/data/kim079/model_optimisation_framework_v2"
-  ensemble_rainfall_file<-"/data/kim079/PhD/bates/rainfall_generation/output/ensemble_rainfall.csv"
-  ensemble_rainfall_stats_file<-"/data/kim079/PhD/bates/rainfall_generation/output/ensemble_rainfall_stats.csv"
-  PET_file<-"/data/kim079/PhD/bates/silo/116053255.csv"
-  stage_data_file<-"/data/kim079/PhD/bates/from_justin/Bates Stage data/Bates Stage data.csv"
-  gauge_rating_data_file<-"/data/kim079/PhD/bates/from_justin/Bates gauging details.csv"
+  wd<-"/datasets/work/LW_TVD_MDBA_WORK/8_Working/7_Shaun/data_backup/kim079/model_optimisation_framework_v2"
+  ensemble_rainfall_file<-"/datasets/work/LW_TVD_MDBA_WORK/8_Working/7_Shaun/data_backup/kim079/PhD/bates/rainfall_generation/output/ensemble_rainfall.csv"
+  ensemble_rainfall_stats_file<-"/datasets/work/LW_TVD_MDBA_WORK/8_Working/7_Shaun/data_backup/kim079/PhD/bates/rainfall_generation/output/ensemble_rainfall_stats.csv"
+  PET_file<-"/datasets/work/LW_TVD_MDBA_WORK/8_Working/7_Shaun/data_backup/kim079/PhD/bates/silo/116053255.csv"
+  stage_data_file<-"/datasets/work/LW_TVD_MDBA_WORK/8_Working/7_Shaun/data_backup/kim079/PhD/bates/from_justin/Bates Stage data/Bates Stage data.csv"
+  gauge_rating_data_file<-"/datasets/work/LW_TVD_MDBA_WORK/8_Working/7_Shaun/data_backup/kim079/PhD/bates/from_justin/Bates gauging details.csv"
 } else {
   wd<-"C:/Users/kim079/Documents/model_optimisation_framework"
+  # ensemble_rainfall_file<-"C:/Users/kim079/Documents/PhD/bates/rainfall_generation/output/ensemble_rainfall.csv"
+  # ensemble_rainfall_stats_file<-"C:/Users/kim079/Documents/PhD/bates/rainfall_generation/output/ensemble_rainfall_stats.csv"
+  # PET_file<-"C:/Users/kim079/Documents/PhD/bates/silo/116053255.csv"
+  # stage_data_file<-"C:/Users/kim079/Documents/PhD/bates/from_justin/Bates Stage data/Bates Stage data.csv"
+  # gauge_rating_data_file<-"C:/Users/kim079/Documents/PhD/bates/from_justin/Bates gauging details.csv"
+  # wd<-"Y:/"
   ensemble_rainfall_file<-"C:/Users/kim079/Documents/PhD/bates/rainfall_generation/output/ensemble_rainfall.csv"
   ensemble_rainfall_stats_file<-"C:/Users/kim079/Documents/PhD/bates/rainfall_generation/output/ensemble_rainfall_stats.csv"
   PET_file<-"C:/Users/kim079/Documents/PhD/bates/silo/116053255.csv"
@@ -65,20 +87,28 @@ if(Sys.info()["sysname"]=="Linux"){
 }
 # initial_state_errors_initial_file<-"output/state_uncertainty/AM/bates/initial_state_errors_initial.csv"
 # state_errors_initial_file<-"output/state_uncertainty/AM/bates/state_errors_initial.csv"
-if(!exists("output_dir")) output_dir<-"output/state_uncertainty/AM/bates"
+# if(!exists("output_dir")) output_dir<-"output/state_uncertainty/AM/bates/adjusted_likelihood_v9.0"
+# if(!exists("output_dir")) output_dir<-"Y:/output/state_uncertainty/AM/bates/adjusted_likelihood_statevalues_v4"
+if(!exists("output_dir")) output_dir<-"C:/Users/kim079/Documents/model_optimisation_framework/output/state_uncertainty/AM/bates/adjusted_likelihood_statevalues_v4.2"
 RRparam_file<-"output/state_uncertainty/AM/bates/gr4j_params.csv"
 
 
 if(!exists("length_ts")) length_ts<-30 #365
-if(!exists("start_ts")) start_ts<-121
-initial_state_normaliser<-0.001
+if(!exists("start_ts")) start_ts<-31 #271 #91 #151
+if(!exists("initial_seed")) initial_seed<-2
+initial_state_normaliser<-1 #0.001
 initial_state_normaliser_R<-0.01
 # seed<-1496902861.98095 
 if(!exists("ITER")) ITER<-1000000
 stop_update_covariance<-1 # stop_update_covariance<-0
-export_diagnostic<-T
+
+export_diagnostic<-F
+if(Sys.info()["sysname"]=="Linux"){
+  export_diagnostic<-T
+}
 
 setwd(wd)
+dir.create(output_dir,showWarnings = F)
 
 if(exists("SD2_file")) SD2<-as.numeric(readLines(SD2_file))
 
@@ -104,13 +134,17 @@ if(!is.loaded("routing_gr4j_sk")){
     dyn.load("packages/gr4j_with_routing_error/src/gr4j_with_routing_error.dll")
   }
 }
-source("scripts/state_uncertainty_trial_gr4j_sma_likelihood_prior_AM.r")
+# source("scripts/state_uncertainty_trial_gr4j_sma_likelihood_prior_AM.r")
 # source("scripts/generate.rating.curve.error.r")
 library(mvtnorm)
 library(MASS)
 library(lattice)
 #library(mvnfast)
 #library(parallel)
+
+library(condMVNorm)
+
+
 sd_zero_mean<-function(x) sqrt(mean(x^2))
 normalise<-function(x,factor=1){
   x*factor
@@ -532,6 +566,7 @@ for(i in 1:length(ensemble_rainfall_stats$sd[index_sampled_inputs])){
   
 }
 
+# normalisers #######################################
 # Super important!!
 # These scaling factors are chosen so that the actual sampled range is around -1 to +1
 # If the correlation matrix is showing very high correlations then this is likely the problem!!
@@ -539,8 +574,7 @@ for(i in 1:length(ensemble_rainfall_stats$sd[index_sampled_inputs])){
 normalisers<-c(1/all_model_params[1],
                rep(initial_state_normaliser,length_ts-1),
                1/ensemble_rainfall_stats$sd[index_sampled_inputs]/3,
-               1/all_model_params[3],
-               rep(initial_state_normaliser_R,length_ts-1))
+               1/all_model_params[3])
 #normalisers<-c(0.0001,rep(1e+29,length_ts-1),rep(1,length_ts))
 
 # error_discharge_variance<-sum(actual_discharge_error^2)/(length(actual_discharge_error)-1)
@@ -551,8 +585,233 @@ population_flow_variance_trans<-population_flow_sd_trans^2
 # error_input_variance<-input_error_sd^2
 error_input_variance<-ensemble_rainfall_stats$sd^2
 
-logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8_v2
-loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8_v2
+logprior_fun<-function(params,min,max,data,likelihood=NULL){
+  
+  return(0)
+  
+}
+
+loglikelihood_fun<-function(data,params){
+  sd_zero_mean<-function(x) sqrt(mean(x^2))
+  var_zero_mean<-function(x) sum(x^2)/(length(x)-1)
+  #   inv.normalise<-function(x,factor){
+  #     x/factor
+  #   }
+  
+  length_ts<-length(data$input)
+  # state_normaliser<-data$normalisers[2] #10^(params[length_ts+data$number_of_sampled_inputs+2]*10)
+  
+  # params_unnorm<-inv.normalise(params[1:(length_ts+data$number_of_sampled_inputs+1)],
+  #                              c(data$normalisers[1],
+  #                                rep(state_normaliser,length_ts-1),
+  #                                data$normalisers[(length_ts+1):(length_ts+data$number_of_sampled_inputs)],
+  #                                data$normalisers[length_ts+data$number_of_sampled_inputs+1]))
+  params_unnorm<-params[1:(length_ts+data$number_of_sampled_inputs+1)]
+  initial_state<-params_unnorm[1]
+  state_values<-params_unnorm[2:length_ts]
+  input_error<-params_unnorm[(length_ts+1):(length_ts+data$number_of_sampled_inputs)]
+  #var_zero_mean(input_error)
+  init_state_R<-params_unnorm[length_ts+data$number_of_sampled_inputs+1]
+  
+  
+  population_flow_variance_trans<-data$population_flow_variance_trans
+  # error_discharge_variance<-data$error_discharge_variance
+  error_input_variance<-data$error_input_variance
+  
+  # browser()
+  # TODO: REALLY IMPORTANT!!!! have to have box-cox untransformed rainfall data here before the simulation!!!
+  
+  # transform rainfall data, introduce the error, then untransform again to simulate
+  input_ts<-data$input
+  input_trans<-rep(NA,data$number_of_sampled_inputs)
+  input_trans_with_error<-rep(NA,data$number_of_sampled_inputs)
+  input_untrans_with_error<-rep(NA,data$number_of_sampled_inputs)
+  log_likelihoods_input<-rep(NA,data$number_of_sampled_inputs)
+  input_not_zero<-which(input_ts!=0)
+  for(ii in 1:data$number_of_sampled_inputs){
+    # TODO: move trans below to data input to improve efficiency
+    input_trans[ii]<-bc_transform_data(data$input[input_not_zero[ii]],
+                                       c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
+    input_trans_with_error[ii]<-input_trans[ii]-input_error[ii]
+    
+    input_untrans_with_error[ii]<-inverse_bc_transform_data(input_trans_with_error[ii],
+                                                            c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],
+                                                              data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
+    
+    # # WTF is below??!!
+    # log_likelihoods_input[ii]<-dnorm(data$error_input_variance[input_not_zero[ii]],
+    #                                  mean=input_trans[ii],
+    #                                  sd=sqrt(data$error_input_variance[input_not_zero[ii]]),log = T)
+    log_likelihoods_input[ii]<-dnorm(input_trans_with_error[ii],
+                                     mean=input_trans[ii],
+                                     sd=sqrt(data$error_input_variance[input_not_zero[ii]]),log = T)
+  }
+  # log_likelihoods_input<-log_likelihoods_input[is.finite(log_likelihoods_input)]
+  
+  input_ts[which(input_ts!=0)]<-input_untrans_with_error
+  
+  E_ts<-data$E
+  input<-data.frame(P=input_ts,E=E_ts)
+  model_run<-gr4j.run(param=data$all_model_params, initial_state_S=initial_state, initial_state_R=init_state_R, 
+                      state_error=rep(0,length_ts-1), state_S_ts = state_values, input=input, state_error_R=rep(0,length_ts-1))/1000*data$area_m2/86400
+  if(!is.na(model_run[1])){
+    
+    # calculate for each 10 min
+    sim_flow<-model_run*60*10
+    # sim_10min<-c()
+    # for(i in 1:length(sim_flow)){
+    #   sim_10min<-c(sim_10min,rep(sim_flow[i],24*6))
+    # }
+    
+    
+    sim_flow_trans<-bc_transform_data(sim_flow,data$rating_error_uncertainty$lambda)
+    # sim_flow_trans<-log_bc_transform(model_run,data$rating_error_uncertainty$bc_lambdas)
+    if(all(!is.na(sim_flow_trans))){
+      # agregate obs flow - assume that instantaneous flow is equivalent to 10 min volume!
+      sim_flow_per_day<-sim_flow_trans*24*6
+      indices<-sort(rep(1:length(sim_flow),24*6))
+      obs_trans_agg<-aggregate(data$rating_flow_trans,by=list(indices),sum)[,2]
+      
+      residual_trans<-sim_flow_per_day-obs_trans_agg
+      
+      # assume that variances are additive:
+      population_flow_variance_trans_agg<-population_flow_variance_trans*24*6
+      
+      # sd_zero_mean(residual_trans)
+      # error_discharge<-model_run-data$obs_discharge
+      #var_zero_mean(error_discharge)
+      error_discharge_variance_calc<-sum(residual_trans^2)/(length(residual_trans))
+
+      log_likelihood_error_discharge<-sum(dnorm(residual_trans,0,sqrt(population_flow_variance_trans_agg),log=T))
+      
+      # input error mean likelihood assuming true mean is zero
+      combined_log_likehood<-log_likelihood_error_discharge+sum(log_likelihoods_input)
+      
+      return(list(combined_log_likehood=combined_log_likehood,error_discharge=residual_trans,error_discharge_variance_calc=error_discharge_variance_calc))
+      
+    } else {
+      return(list(combined_log_likehood=-Inf,error_discharge=NA,error_discharge_variance_calc=NA))
+    }
+    
+  } else {
+    return(list(combined_log_likehood=-Inf,error_discharge=NA,error_discharge_variance_calc=NA))
+  }
+  
+}
+
+plot_function<-function(){
+  
+  if(export_diagnostic){
+    prefix<-paste("bates",start_ts,length_ts,initial_seed,seed,sep="_")
+    # write parameters
+    output_name<-paste0(output_dir,"/diagnostic_",prefix,".png")
+    png(output_name,height=1000)
+  }
+  layout(matrix(1:10,nrow=5,byrow=T))
+  # state_normaliser<-10^(theta[1:i,length_ts+data$number_of_sampled_inputs+2]*10)
+  state_normaliser<-rep(data$normalisers[2],i)
+  #all_state_normaliser<-cbind(state_normaliser,state_normaliser,state_normaliser,state_normaliser,state_normaliser,state_normaliser)
+  all_state_normaliser<-matrix(rep(state_normaliser,length_ts-1),ncol=length_ts-1)
+  all_normaliser<-cbind(rep(data$normalisers[1],length(state_normaliser)),
+                        all_state_normaliser,
+                        matrix(rep(data$normalisers[(length_ts+1):(length_ts+number_of_sampled_inputs)],length(state_normaliser)),
+                               nrow=length(state_normaliser),ncol=number_of_sampled_inputs,byrow=T),
+                        rep(data$normalisers[length_ts+number_of_sampled_inputs+1],length(state_normaliser)))
+  
+  # theta_unnorm<-cbind(inv.normalise(theta[1:i,1:(length_ts+number_of_sampled_inputs+1)],all_normaliser),state_normaliser)
+  
+  theta_unnorm<-theta[1:i,1:(length_ts+number_of_sampled_inputs+1)]
+  
+  
+  #theta_unnorm<-t(apply(theta[!is.na(theta[,1]),],1,inv.normalise,factor=normalisers))
+  #t(theta_unnorm)[1,]
+  #inv.normalise(theta[1,],normalisers)
+  plot(theta_unnorm[,1],type="l")
+  plot(theta_unnorm[,2],type="l")
+  plot(theta_unnorm[,length_ts+1],type="l")
+  plot(theta_unnorm[,length_ts+number_of_sampled_inputs+1],type="l")
+  # plot(theta_unnorm[,length_ts*2+1],type="l")
+  #plot(theta_unnorm[,15],type="l")
+  #plot(theta[!is.na(theta[,31]),31],type="l")
+  #plot(theta[!is.na(theta[,61]),61],type="l")
+  # plot(state_normaliser,type="l",log="y",main=state_normaliser[length(state_normaliser)])
+  logposterior<-L+Pr
+  if(!all(is.infinite(logposterior[!is.na(logposterior)]))){
+    #plot(logposterior[max(1,i-20000):i],type="l")
+    plot(logposterior[1:i],type="l")
+    state_sd_calc<-apply(theta_unnorm[1:i,2:length_ts],1,sd_zero_mean)
+    plot(x=state_sd_calc,y=logposterior[1:i],log="x")
+    points(x=state_sd_calc[(length(state_sd_calc)-1999):length(state_sd_calc)],y=logposterior[(length(state_sd_calc)-1999):length(state_sd_calc)],col=3)
+    points(x=state_sd_calc[1],y=logposterior[1],col=2,cex=4)
+    
+    
+  }
+  
+  # input error sd plot
+  # input_error_sd_calc<-apply(theta_unnorm[1:i,(length_ts+1):(length_ts+number_of_sampled_inputs)],1,sd_zero_mean)
+  # plot(input_error_sd_calc,type="l")
+  
+  # transform rainfall data, introduce the error, then untransform again to simulate
+  input_error_added<-data$input
+  input_trans<-rep(NA,data$number_of_sampled_inputs)
+  input_trans_with_error<-rep(NA,data$number_of_sampled_inputs)
+  input_untrans_with_error<-rep(NA,data$number_of_sampled_inputs)
+  input_not_zero<-which(input_error_added!=0)
+  for(ii in 1:data$number_of_sampled_inputs){
+    # TODO: move trans below to data input to improve efficiency
+    input_trans[ii]<-bc_transform_data(data$input[input_not_zero[ii]],
+                                       c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
+    input_trans_with_error[ii]<-input_trans[ii]-theta_unnorm[i,(length_ts+1):(length_ts+number_of_sampled_inputs)][ii]
+    
+    input_untrans_with_error[ii]<-inverse_bc_transform_data(input_trans_with_error[ii],
+                                                            c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],
+                                                              data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
+    
+  }
+  
+  input_error_added[which(input_error_added!=0)]<-input_untrans_with_error
+  matplot(cbind(data$input,input_error_added),type="l")
+  
+  model_run<-gr4j.run(param=data$all_model_params, initial_state_S=theta_unnorm[i,1],
+                      initial_state_R=theta_unnorm[i,length_ts+number_of_sampled_inputs+1], 
+                      state_error=rep(0,length_ts-1),state_S_ts = theta_unnorm[i,2:length_ts], input=data.frame(P=input_error_added,E=E_input),
+                      state_error_R=rep(0,length_ts-1))/1000*data$area_m2/86400
+  
+  if(!is.na(model_run[1])){
+    # calculate for each day
+    sim_flow<-model_run*86400
+    indices<-sort(rep(1:length(model_run),24*6))
+    obs_agg<-aggregate(actual_obs_discharge_untrans,by=list(indices),sum)[,2]
+    
+    matplot(cbind(obs_agg,sim_flow),type="l",main=paste("disch trans sd =",
+                                                        round(sqrt(logL$error_discharge_variance_calc),2),
+                                                        "( expected = ",round(sqrt((population_flow_sd_trans^2)*24*6),2),")"))
+  }
+  
+  
+  
+  # if(i%%cor_plot_interval==0){
+  #   # correlations
+  #   cor_theta<-cor(theta[1:i,])
+  #   lp<-levelplot(cor_theta,ylim=c(nrow(cor_theta)+0.5,0.5),at=seq(-1,1,length.out=51))
+  #   print(lp)
+  #   index_all_cor_theta<-i/cor_plot_interval
+  #   all_cor_theta[index_all_cor_theta,]<-c(cor_theta)
+  #   if(index_all_cor_theta>1 & i%%(cor_plot_interval*2)==0){
+  #     layout(1)
+  #     matplot(all_cor_theta[1:index_all_cor_theta,],type="l")
+  #   }
+  # }
+  
+  
+  acceptance_rate<-length(which(Jump[!is.na(Jump)]==1))/length(Jump[!is.na(Jump)])
+  cat("total acceptance_rate =",acceptance_rate,"\n")
+  
+  cat("discharge trans sd =",sqrt(logL$error_discharge_variance_calc),"( expected = ",sqrt((population_flow_sd_trans^2)*24*6),") \n")
+  if(export_diagnostic){
+    dev.off()
+  }
+}
 
 #min_par<-c(0,0,1e-6)
 #max_par<-c(100,100,100)
@@ -581,30 +840,22 @@ loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_
 # production store state samples before unscaling,
 # input error samples after scaling but before boxcox untransform,
 # actual routing initial state (unscaled),
-# routing store state samples before unscaling,
 # scaled scaling factor for production store (before itself is unscaled),
-# scaled scaling factor for routing store (before itself is unscaled),
 # production store state samples after unscaling
 # routing state samples after unscaling
-params_min<-c(-4000,
-              rep(-1,length(input_trial)-1),
+params_min<-c(0,
+              rep(0,length(input_trial)-1),
               -ensemble_rainfall_stats$sd[index_sampled_inputs]*5,
               0,
-              rep(-1,length(input_trial)-1),
               log10(1e-12)/10,
-              log10(1e-12)/10,
-              rep(-4000,length(input_trial)-1), # used for unnormalised state S bounds
-              rep(-1000,length(input_trial)-1) # used for unnormalised state R bounds
+              rep(-4000,length(input_trial)-1) # used for unnormalised state S bounds
               ) 
-params_max<-c(4000,
-              rep(1,length(input_trial)-1),
+params_max<-c(actual_model_param,
+              rep(actual_model_param,length(input_trial)-1),
               ensemble_rainfall_stats$sd[index_sampled_inputs]*5,
               all_model_params[3],
-              rep(1,length(input_trial)-1),
               log10(1e12)/10,
-              log10(1e12)/10,
-              rep(4000,length(input_trial)-1), # used for unnormalised state S bounds
-              rep(1000,length(input_trial)-1) # used for unnormalised state R bounds
+              rep(4000,length(input_trial)-1) # used for unnormalised state S bounds
               )
 
 data<-list(input=input_trial,E=E_input,model_param=actual_model_param,
@@ -637,51 +888,116 @@ data<-list(input=input_trial,E=E_input,model_param=actual_model_param,
 
 # browser()
 # check initialise params and test
-init_counter<-0
-init_fail<-T
-while(init_fail){
-  init_counter<-init_counter+1
-  # initial_params<-c(normalise(
-  #   c(rnorm(length(actual_initial_state),0,1000),
-  #     rnorm(length(actual_state_error),0,sd_zero_mean(actual_state_error)),
-  #     rnorm(length(input_error),0,input_error_sd)),
-  #   normalisers),log10(initial_state_normaliser)) #log10(0.01)
-  # logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8
-  # loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error
-  
-  # initial_params<-c(normalise(c(actual_initial_state,
-  #                                  rep(0,length(input_trial)-1),
-  #                                  rep(0,length(input_trial)),
-  #                                  actual_initial_state_R),normalisers),log10(initial_state_normaliser)/10)
-  if(exists("state_errors_initial_file")){
-    initial_params<-c(normalise(c(actual_initial_state,
-                                  state_errors_initial[,1],
-                                  rep(0,number_of_sampled_inputs),
-                                  actual_initial_state_R,
-                                  state_errors_initial[,2]),normalisers),
-                      log10(initial_state_normaliser)/10,
-                      log10(initial_state_normaliser_R)/10)
-    
-    
-  } else {
-    initial_params<-c(normalise(c(actual_initial_state,
-                                  rep(0,length(input_trial)-1),
-                                  rep(0,number_of_sampled_inputs),
-                                  actual_initial_state_R,
-                                  rep(0,length(input_trial)-1)),normalisers),
-                      log10(initial_state_normaliser)/10,
-                      log10(initial_state_normaliser_R)/10)
-  }
-  logprior_init<-logprior_fun(initial_params,params_min,params_max,data)
-  loglike_init<-loglikelihood_fun(data,initial_params)[[1]]
-  if(!is.infinite(logprior_init) & !is.infinite(loglike_init)) init_fail<-F
-  if(init_counter>1000) stop("Initialisation failed!!")
-}
+# Initialisation ############################################
 
+if(exists("initial_seed")) set.seed(initial_seed)
 
-# # check initialise params and test
 # init_counter<-0
 # init_fail<-T
+# init_post<--Inf
+# actual_init_params<-NA
+# while(init_fail){
+#   init_counter<-init_counter+1
+#   if((init_counter%%1000)==0) cat("init_counter",init_counter,"\n")
+#   # initial_params<-c(normalise(
+#   #   c(rnorm(length(actual_initial_state),0,1000),
+#   #     rnorm(length(actual_state_error),0,sd_zero_mean(actual_state_error)),
+#   #     rnorm(length(input_error),0,input_error_sd)),
+#   #   normalisers),log10(initial_state_normaliser)) #log10(0.01)
+#   # logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error_adjusted_v5.8
+#   # loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates3_hs_play_bates_routing_error
+#   
+#   # initial_params<-c(normalise(c(actual_initial_state,
+#   #                                  rep(0,length(input_trial)-1),
+#   #                                  rep(0,length(input_trial)),
+#   #                                  actual_initial_state_R),normalisers),log10(initial_state_normaliser)/10)
+#   if(exists("state_errors_initial_file")){
+#     initial_params<-c(normalise(c(actual_initial_state,
+#                                   state_errors_initial[,1],
+#                                   rep(0,number_of_sampled_inputs),
+#                                   actual_initial_state_R),normalisers))
+#     
+#     
+#   } else {
+#     # initial_params<-c(normalise(c(actual_initial_state,
+#     #                               rep(0,length(input_trial)-1),
+#     #                               rep(0,number_of_sampled_inputs),
+#     #                               actual_initial_state_R),normalisers),
+#     #                   log10(initial_state_normaliser)/10)
+#     input_params_min<-params_min[(length_ts+1):(length_ts+number_of_sampled_inputs)]
+#     input_params_max<-params_max[(length_ts+1):(length_ts+number_of_sampled_inputs)]
+#     all_init_input<-c()
+#     # for(iinput in 1:number_of_sampled_inputs){
+#     #   all_init_input<-c(all_init_input,runif(1,input_params_min[iinput],input_params_max[iinput]))
+#     # }
+#     for(iinput in 1:number_of_sampled_inputs){
+#       all_init_input<-c(all_init_input,0)
+#     }
+#     
+#     # initial_params<-c(normalise(c(runif(1,params_min[1],params_max[1]),
+#     #                               runif(length(input_trial)-1,params_min[2],params_max[2]),
+#     #                               all_init_input,
+#     #                               runif(1,params_min[length_ts+number_of_sampled_inputs+1],params_max[length_ts+number_of_sampled_inputs+1])),normalisers)
+#     #                   )
+#     
+#     rrm_opt$par[5]
+#     rrm_opt$par[6]
+#     initial_params<-c(rrm_opt$par[5],runif(length(input_trial)-1,params_min[2],params_max[2]),
+#                       all_init_input,
+#                       rrm_opt$par[6])
+#     # initial_params<-c(runif(1,params_min[1],params_max[1]),
+#     #                               runif(length(input_trial)-1,params_min[2],params_max[2]),
+#     #                               all_init_input,
+#     #                               runif(1,params_min[length_ts+number_of_sampled_inputs+1],params_max[length_ts+number_of_sampled_inputs+1]))
+#   }
+#   logprior_init<-logprior_fun(initial_params,params_min,params_max,data)
+#   loglike_init<-loglikelihood_fun(data,initial_params)[[1]]
+#   # if(!is.infinite(logprior_init) & !is.infinite(loglike_init)) init_fail<-F
+#   if(init_counter>50000) break #stop("Initialisation failed!!")
+#   cur_post<-logprior_init+loglike_init
+#   if(cur_post>init_post){
+#     init_post<-cur_post
+#     actual_init_params<-initial_params
+#     cat("init post =",init_post,"\n")
+#   }
+#   
+# }
+# if(is.na(actual_init_params[1])) stop("prob with init")
+# 
+
+
+if(exists("theta_file")){
+  initial_params<-c(rrm_opt$par[5],rep(rrm_opt$par[5],length(input_trial)-1),
+                    rep(0,number_of_sampled_inputs),
+                    rrm_opt$par[6])
+} else {
+  init_opt_fun<-function(par){
+    logprior_init<-logprior_fun(par,params_min,params_max,data)
+    loglike_init<-loglikelihood_fun(data,par)[[1]]
+    return(-(logprior_init+loglike_init))
+  }
+  
+  library(DEoptim)
+  init_opt<-DEoptim(init_opt_fun,
+                    lower = params_min[1:(length_ts+number_of_sampled_inputs+1)],
+                    upper = params_max[1:(length_ts+number_of_sampled_inputs+1)],
+                    control = list(trace=1))
+  
+  bestval<-round(init_opt$optim$bestval,2)
+  prev_bestval<-bestval+1
+  while(bestval!=prev_bestval){
+    prev_bestval<-bestval
+    init_opt<-DEoptim(init_opt_fun,
+                      lower = params_min[1:(length_ts+number_of_sampled_inputs+1)],
+                      upper = params_max[1:(length_ts+number_of_sampled_inputs+1)],
+                      control = list(trace=1,itermax=2000,initialpop=init_opt$member$pop))
+    bestval<-round(init_opt$optim$bestval,2)
+  }
+
+  initial_params<-init_opt$optim$bestmem
+}
+
+# logprior_init+loglike_init
 # while(init_fail){
 #   init_counter<-init_counter+1
 #   # initial_params<-c(normalise(
@@ -697,15 +1013,18 @@ while(init_fail){
 # }
 
 
-
-
-num_timesteps_cov<-100000
+num_timesteps_cov<-Inf #100000
 cor_plot_interval<-20000
 tune_scale<-T # tunes the scaling factor (SD2) according to the acceptance rate over the last tune_interval. From pymc3 (metropolis.py)
 tune_interval<-2000 # this should be divisible by update_covariance_interval
-update_covariance_interval<-100 # this should be divide into tune_interval
+update_covariance_interval<-100 #20 #100 # this should be divide into tune_interval
+start_collecting_CovPar<-Inf #1000001
+start_sampling_CovPar<-Inf #1000001
+resample_thetas<-F
+start_gibbs_iter<-1
+
 # if(!exists("ITER")) ITER = 2000000  #number of iterations to perform
-i0   = 0.001 #0.10  #percentage of initial iterations before adaptation
+i0   = 0.001 #0.001  #percentage of initial iterations before adaptation
 # rm("SD2")
 if(exists("SD2")){
   SD1  = SD2  #initial covariance matrix scaling factor (i0)
@@ -714,6 +1033,13 @@ if(exists("SD2")){
   SD2  = (2.4^2)/length(initial_params) #from Haario #0.30 #0.009 #0.15  #adaptive covariance matrix scaling factor (1-i0) (lower scaling is higher acceptance) )
 }
 if(!exists("stop_update_covariance")) stop_update_covariance<-0.5
+
+if(export_diagnostic){
+  diagnostic_plot_interval<-ITER
+} else {
+  diagnostic_plot_interval<-2000
+}
+
 #ncores<-detectCores(logical=F)
 
 ### 2 - Simulation model parameters
@@ -724,10 +1050,13 @@ if(!exists("stop_update_covariance")) stop_update_covariance<-0.5
 ### 4 - Define parameter matrix
 INIT_PAR<-initial_params
 if(exists("theta_file")){
+  # theta<-read.csv(theta_file,as.is=T)
+  # apply(as.matrix(theta),1,as.numeric)
   theta<-as.matrix(read.csv(theta_file,as.is=T))
   prev_theta<-theta[!is.na(theta[,1]),]
   if(is.null(nrow(prev_theta))){
     INIT_PAR<-prev_theta
+    prev_theta<-t(prev_theta)
   } else if(nrow(prev_theta)==1) {
     INIT_PAR<-prev_theta[nrow(prev_theta),]
   } else {
@@ -785,8 +1114,10 @@ Id = diag(nPAR)  #identity matrix used in CovPar adaptation
 
 recalculate_CovPar<-T
 if(recalculate_CovPar & exists("prev_theta")){
-  CovPar_unscaled<-cov(theta[max(1,start_iter-num_timesteps_cov):(start_iter-1),])
-  CovPar = SD2*CovPar_unscaled+SD2*epsilon*Id
+  if(nrow(prev_theta)>1){
+    CovPar_unscaled<-cov(theta[max(1,start_iter-num_timesteps_cov):(start_iter-1),])
+    CovPar = SD2*CovPar_unscaled+SD2*epsilon*Id
+  }
 }
 
 
@@ -814,8 +1145,12 @@ L<-rep(NA,ITER)
 
 L[start_iter-1] = logL[[1]] #logL$combined_log_likehood #initial value for the log likelihood
 
-## Run AM algorithm ------------------------------------------------------#
-theta_pro<-matrix(NA,nrow=ITER,ncol=nPAR)
+
+
+
+
+## Run AM algorithm ####################################################
+# theta_pro<-matrix(NA,nrow=ITER,ncol=nPAR)
 L_pro<-rep(NA,ITER)
 Pr_pro<-rep(NA,ITER)
 psi<-rep(NA,ITER)
@@ -825,208 +1160,183 @@ beginning_time<-Sys.time()
 all_cor_theta<-matrix(NA,nrow=ITER/cor_plot_interval,ncol=nPAR*nPAR)
 all_SD2<-rep(NA,ITER/tune_interval)
 all_interval_acceptance<-rep(NA,ITER/tune_interval)
+all_discharge_error_sd<-c()
+first_covpar_calculated<-F
+iii<-0
+param_indices<-1:nPAR
+
 for(i in start_iter:ITER){
-  if(i%%1000==0) cat(i,"/",ITER,"|",start_ts,length_ts,"\n")
+  if(i%%1000==0) cat(i,"/",ITER,"|",start_ts,"|",length_ts,"|",initial_seed,"\n")
+  # if(i%%1000==0) browser()
+  iii<-iii+1
+  if(iii>nPAR) iii<-1
+  
   ### 1 - Adapt covariance matrix
   if (i > i0*ITER & i%%update_covariance_interval==0 & i<stop_update_covariance*ITER){  #adaptive covariance matrix routine
-    CovPar_unscaled<-cov(theta[max(1,i-num_timesteps_cov):(i-1),])
+    thin_for_covar<-F
+    if(thin_for_covar){
+      theta_tmp<-theta[max(1,i-num_timesteps_cov):(i-1),]
+      theta_tmp<-theta_tmp[seq(1,nrow(theta_tmp),by=100),]
+      CovPar_unscaled<-cov(theta_tmp)
+    } else {
+      use_updateCovariance<-T
+      if(use_updateCovariance & exists("CovPar_unscaled") & first_covpar_calculated & is.infinite(num_timesteps_cov)){
+        library(onlinePCA)
+        CovPar_unscaled_new<-updateCovariance(CovPar_unscaled,
+                                              theta[max(1,i-update_covariance_interval):(i-1),],
+                                              i-update_covariance_interval-1,
+                                              colMeans(theta[1:max(1,i-update_covariance_interval-1),]))
+        
+        if(i%%(update_covariance_interval*10000)==0){
+          actual_CovPar_unscaled<-cov(theta[1:(i-1),])
+          if(!all.equal(CovPar_unscaled_new,actual_CovPar_unscaled)){
+            cat("covariance update problem \n")
+            browser()
+            stop("covariance update problem")
+            CovPar_unscaled_new<-actual_CovPar_unscaled
+          }
+        }
+        CovPar_unscaled<-CovPar_unscaled_new
+        
+      } else {
+        CovPar_unscaled<-cov(theta[max(1,i-num_timesteps_cov):(i-1),])
+        first_covpar_calculated<-T
+      }
+      
+      
+    }
+    
     CovPar = SD2*CovPar_unscaled+SD2*epsilon*Id #updates the covariance
+    if(i>=start_collecting_CovPar){
+      all_CovPar[[length(all_CovPar)+1]]<-CovPar
+      all_CovPar_means<-rbind(all_CovPar_means,theta[i-1,])
+    }
+    if(i>=start_sampling_CovPar & i%%(update_covariance_interval*100)==0){
+      sample_CovPar<-sample(length(all_CovPar),1)
+      CovPar<-all_CovPar[[sample_CovPar]]
+      if(resample_thetas){
+        theta[i-1,]<-all_CovPar_means[sample_CovPar,]
+      }
+      
+    }
   }
-  ### 2 - Generate parameter proposals
-  #theta[i,] = rmvnorm(1,theta[i-1,],CovPar) #proposed values - less robust slower
-  theta[i,]<-mvrnorm(1,theta[i-1,],CovPar) #proposed values - more robust faster
-  
-  
-  # # adjust covpar
-  # input_error_indices<-(length_ts+1):(length_ts*2)
-  # for(ii in input_error_indices){
-  #   # CovPar[ii,ii] = SD2*(input_error_sd^2)+SD2*epsilon
-  #   CovPar[ii,ii] = (input_error_sd^2)
-  # }
-  # prop_mean<-theta[i-1,]
-  # prop_mean[input_error_indices]<-0
-  # theta[i,]<-mvrnorm(1,prop_mean,CovPar) #proposed values - more robust faster
-  # # plot(mvrnorm(1,theta[i-1,],CovPar))
-  
-  
-  #system.time({for(jj in 1:1000000) theta[i,]<-mvrnorm(1,theta[i-1,],CovPar)})
-  #system.time({for(jj in 1:1000000) theta[i,]<-rmvn(1,theta[i-1,],CovPar,ncores=ncores)})
-  #system.time({for(jj in 1:1000000) rmvn(1,theta[i-1,],CovPar,ncores=ncores,A=A); theta[i,]<-A})
-  #rmvn(1,theta[i-1,],CovPar,ncores=ncores,isChol=T,A=A); theta[i,]<-A #proposed values - faster
-  #rmvn(1,theta[i-1,],CovPar,ncores=ncores,isChol=F,A=A); theta[i,]<-A #proposed values - faster
-  
-  # # replace the input error proposal with sample from actual distribution
-  # input_error_indices<-(length_ts+1):(length_ts*2)
-  # input_error_sample<-rnorm(length(input_error_indices),mean=0,sd=input_error_sd)
-  # # sd_zero_mean(input_error_sample)
-  # # TODO: scale this
-  # theta[i,input_error_indices]<-input_error_sample
-  
-  # Ensure within range
-  #theta[i,theta[i,]<params_min]<-params_min[theta[i,]<params_min]
-  #theta[i,theta[i,]>params_max]<-params_max[theta[i,]>params_max]
-  #theta_restrict<-theta[i,]
-  #theta_restrict[theta[i,]<params_min]<-params_min[theta[i,]<params_min]
-  #theta_restrict[theta[i,]>params_max]<-params_max[theta[i,]>params_max]
-  
-  theta_pro[i,] = theta[i,] #matrix of proposed theta's (rejected & accepted)
-  
-  ### 3 - Run simulation model
-  #y = SimModel(theta[i,],data)
-  
-  ### 4 - Compute log likelihood
-  logL = loglikelihood_fun(data,theta[i,])
-  #logL = loglikelihood_fun(data,theta_restrict)
-  
-  L[i] = logL[[1]] #logL$combined_log_likehood
-  L_pro[i] = L[i] #proposed likelihood
-  ### 5 - Compute log prior
-  #   Pr1 = dbeta(theta[i,1],0.5,1.0,log=T)
-  #   Pr2 = dgamma(theta[i,2],0.5,scale=1.0,log=T)
-  #   Pr3 = dexp(theta[i,3],0.5,log=T)
-  #   Pr[i] = Pr1+Pr2+Pr3
-  Pr[i] = logprior_fun(theta[i,],params_min,params_max,data)
-  #Pr[i] = logprior_fun(theta_restrict,params_min,params_max,data)
-  Pr_pro[i] = Pr[i] #proposed prior
-  ### 6 - Compute Metropolis ratio
-  psi[i] = exp((L[i]-L[i-1])+(Pr[i]-Pr[i-1])) #Metropolis ratio
-  if(is.nan(psi[i])) psi[i]<-0
-  ### 7 - Determine accept/reject of proposal
-  z = runif(1,0,1)
-  if(z <= psi[i]){
-    #theta[i,] = theta[i,] #jump to next theta
-    Jumps = Jumps+1
-    Jump[i] = 1
-  } else{
-    theta[i,] = theta[i-1,] #remain at current theta
-    L[i] = L[i-1]
-    Pr[i] = Pr[i-1]
-    Jump[i] = 0
+  # Delayed Rejection ###########
+  number_delayed_rejections<-4
+  attempt<-0
+  DR_scaling_factor<-1
+  while(attempt<=number_delayed_rejections){
+    attempt<-attempt+1
+    ### 2 - Generate parameter proposals
+    if(i>=start_gibbs_iter){
+      
+      theta[i,]<-theta[i-1,]
+      
+      # check positive definiteness
+      # if(!is.positive.definite(CovPar)){
+      #   stop("CovPar not positive definite")
+      # }
+      try_rcmvnorm<-try({
+        theta[i,iii]<-rcmvnorm(n=1,
+                               mean=theta[i-1,],
+                               sigma=CovPar*DR_scaling_factor,
+                               dependent.ind = iii,
+                               given.ind = param_indices[-iii],
+                               X.given = theta[i-1,-iii],
+                               method="chol",check.sigma = F)
+      },silent = T)
+      if(length(grep("Error",try_rcmvnorm))>0){
+        theta[i,]<-mvrnorm(1,theta[i-1,],CovPar*DR_scaling_factor) #proposed values - more robust faster
+      }
+
+    } else {
+      theta[i,]<-mvrnorm(1,theta[i-1,],CovPar*DR_scaling_factor) #proposed values - more robust faster
+    }
+    #theta[i,] = rmvnorm(1,theta[i-1,],CovPar) #proposed values - less robust slower
+    
+    DR_scaling_factor<-DR_scaling_factor*0.5 # for next delayed rejection stage
+    
+    # # adjust covpar
+    # input_error_indices<-(length_ts+1):(length_ts*2)
+    # for(ii in input_error_indices){
+    #   # CovPar[ii,ii] = SD2*(input_error_sd^2)+SD2*epsilon
+    #   CovPar[ii,ii] = (input_error_sd^2)
+    # }
+    # prop_mean<-theta[i-1,]
+    # prop_mean[input_error_indices]<-0
+    # theta[i,]<-mvrnorm(1,prop_mean,CovPar) #proposed values - more robust faster
+    # # plot(mvrnorm(1,theta[i-1,],CovPar))
+    
+    
+    #system.time({for(jj in 1:1000000) theta[i,]<-mvrnorm(1,theta[i-1,],CovPar)})
+    #system.time({for(jj in 1:1000000) theta[i,]<-rmvn(1,theta[i-1,],CovPar,ncores=ncores)})
+    #system.time({for(jj in 1:1000000) rmvn(1,theta[i-1,],CovPar,ncores=ncores,A=A); theta[i,]<-A})
+    #rmvn(1,theta[i-1,],CovPar,ncores=ncores,isChol=T,A=A); theta[i,]<-A #proposed values - faster
+    #rmvn(1,theta[i-1,],CovPar,ncores=ncores,isChol=F,A=A); theta[i,]<-A #proposed values - faster
+    
+    # # replace the input error proposal with sample from actual distribution
+    # input_error_indices<-(length_ts+1):(length_ts*2)
+    # input_error_sample<-rnorm(length(input_error_indices),mean=0,sd=input_error_sd)
+    # # sd_zero_mean(input_error_sample)
+    # # TODO: scale this
+    # theta[i,input_error_indices]<-input_error_sample
+    
+    # Ensure within range
+    #theta[i,theta[i,]<params_min]<-params_min[theta[i,]<params_min]
+    #theta[i,theta[i,]>params_max]<-params_max[theta[i,]>params_max]
+    #theta_restrict<-theta[i,]
+    #theta_restrict[theta[i,]<params_min]<-params_min[theta[i,]<params_min]
+    #theta_restrict[theta[i,]>params_max]<-params_max[theta[i,]>params_max]
+    
+    # theta_pro[i,] <- theta[i,] #matrix of proposed theta's (rejected & accepted)
+    
+    ### 3 - Run simulation model
+    #y = SimModel(theta[i,],data)
+    
+    ### 5 - Compute log prior
+    #   Pr1 = dbeta(theta[i,1],0.5,1.0,log=T)
+    #   Pr2 = dgamma(theta[i,2],0.5,scale=1.0,log=T)
+    #   Pr3 = dexp(theta[i,3],0.5,log=T)
+    #   Pr[i] = Pr1+Pr2+Pr3
+    Pr[i] = logprior_fun(theta[i,],params_min,params_max,data)
+    #Pr[i] = logprior_fun(theta_restrict,params_min,params_max,data)
+    Pr_pro[i] = Pr[i] #proposed prior
+    
+    ### 4 - Compute log likelihood
+    if(is.infinite(Pr[i])){
+      logL = -Inf
+    } else {
+      logL = loglikelihood_fun(data,theta[i,])
+    }
+    # logL = loglikelihood_fun(data,theta[i,])
+    #logL = loglikelihood_fun(data,theta_restrict)
+    
+    L[i] = logL[[1]] #logL$combined_log_likehood
+    L_pro[i] = L[i] #proposed likelihood
+    
+    ### 6 - Compute Metropolis ratio
+    psi[i] = exp((L[i]-L[i-1])+(Pr[i]-Pr[i-1])) #Metropolis ratio
+    if(is.nan(psi[i])) psi[i]<-0
+    ### 7 - Determine accept/reject of proposal
+    z = runif(1,0,1)
+    if(z <= psi[i]){
+      #theta[i,] = theta[i,] #jump to next theta
+      Jumps = Jumps+1
+      Jump[i] = 1
+      break
+    } else{
+      theta[i,] = theta[i-1,] #remain at current theta
+      L[i] = L[i-1]
+      Pr[i] = Pr[i-1]
+      Jump[i] = 0
+    }
   }
   
   ## 8 - Iterate
-  if((i%%1000000)==0){
-    if(export_diagnostic){
-      prefix<-paste("bates",start_ts,length_ts,seed,sep="_")
-      # write parameters
-      if(!exists("output_dir")){
-        output_dir<-"output/state_uncertainty/AM"
-      }
-      output_name<-paste0(output_dir,"/diagnostic_",prefix,".png")
-      png(output_name,height=1000)
-    }
-    layout(matrix(1:12,nrow=6,byrow=T))
-    state_normaliser<-10^(theta[1:i,2*length_ts+data$number_of_sampled_inputs+1]*10)
-    state_normaliser_R<-10^(theta[1:i,2*length_ts+data$number_of_sampled_inputs+2]*10)
-    #all_state_normaliser<-cbind(state_normaliser,state_normaliser,state_normaliser,state_normaliser,state_normaliser,state_normaliser)
-    all_state_normaliser<-matrix(rep(state_normaliser,length_ts-1),ncol=length_ts-1)
-    all_state_normaliser_R<-matrix(rep(state_normaliser_R,length_ts-1),ncol=length_ts-1)
-    all_normaliser<-cbind(rep(data$normalisers[1],length(state_normaliser)),
-                          all_state_normaliser,
-                          matrix(rep(data$normalisers[(length_ts+1):(length_ts+number_of_sampled_inputs)],length(state_normaliser)),
-                                 nrow=length(state_normaliser),ncol=number_of_sampled_inputs,byrow=T),
-                          rep(data$normalisers[length_ts+number_of_sampled_inputs+1],length(state_normaliser)),
-                          all_state_normaliser_R)
-    
-    theta_unnorm<-cbind(inv.normalise(theta[1:i,1:(2*length_ts+number_of_sampled_inputs)],all_normaliser),state_normaliser)
-    
-    #theta_unnorm<-t(apply(theta[!is.na(theta[,1]),],1,inv.normalise,factor=normalisers))
-    #t(theta_unnorm)[1,]
-    #inv.normalise(theta[1,],normalisers)
-    plot(theta_unnorm[,1],type="l")
-    plot(theta_unnorm[,2],type="l")
-    plot(theta_unnorm[,length_ts+1],type="l")
-    plot(theta_unnorm[,length_ts+number_of_sampled_inputs+1],type="l")
-    plot(theta_unnorm[,length_ts+number_of_sampled_inputs+2],type="l")
-    # plot(theta_unnorm[,length_ts*2+1],type="l")
-    #plot(theta_unnorm[,15],type="l")
-    #plot(theta[!is.na(theta[,31]),31],type="l")
-    #plot(theta[!is.na(theta[,61]),61],type="l")
-    plot(state_normaliser,type="l",log="y",main=state_normaliser[length(state_normaliser)])
-    plot(state_normaliser_R,type="l",log="y",main=state_normaliser_R[length(state_normaliser_R)])
-    logposterior<-L+Pr
-    if(!all(is.infinite(logposterior[!is.na(logposterior)]))){
-      #plot(logposterior[max(1,i-20000):i],type="l")
-      plot(logposterior[1:i],type="l")
-      state_sd_calc<-apply(theta_unnorm[1:i,2:length_ts],1,sd_zero_mean)
-      plot(x=state_sd_calc,y=logposterior[1:i],log="x")
-      points(x=state_sd_calc[(length(state_sd_calc)-1999):length(state_sd_calc)],y=logposterior[(length(state_sd_calc)-1999):length(state_sd_calc)],col=3)
-      points(x=state_sd_calc[1],y=logposterior[1],col=2,cex=4)
-      
-      state_R_sd_calc<-apply(theta_unnorm[1:i,(length_ts+number_of_sampled_inputs+2):(2*length_ts+number_of_sampled_inputs)],1,sd_zero_mean)
-      plot(x=state_R_sd_calc,y=logposterior[1:i],log="x")
-      points(x=state_R_sd_calc[(length(state_R_sd_calc)-1999):length(state_R_sd_calc)],y=logposterior[(length(state_R_sd_calc)-1999):length(state_R_sd_calc)],col=3)
-      points(x=state_R_sd_calc[1],y=logposterior[1],col=2,cex=4)
-      
-    }
-    
-    # input error sd plot
-    # input_error_sd_calc<-apply(theta_unnorm[1:i,(length_ts+1):(length_ts+number_of_sampled_inputs)],1,sd_zero_mean)
-    # plot(input_error_sd_calc,type="l")
-    
-    # transform rainfall data, introduce the error, then untransform again to simulate
-    input_error_added<-data$input
-    input_trans<-rep(NA,data$number_of_sampled_inputs)
-    input_trans_with_error<-rep(NA,data$number_of_sampled_inputs)
-    input_untrans_with_error<-rep(NA,data$number_of_sampled_inputs)
-    input_not_zero<-which(input_error_added!=0)
-    for(ii in 1:data$number_of_sampled_inputs){
-      # TODO: move trans below to data input to improve efficiency
-      input_trans[ii]<-bc_transform_data(data$input[input_not_zero[ii]],
-                                         c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
-      input_trans_with_error[ii]<-input_trans[ii]-theta_unnorm[i,(length_ts+1):(length_ts+number_of_sampled_inputs)][ii]
-      
-      input_untrans_with_error[ii]<-inverse_bc_transform_data(input_trans_with_error[ii],
-                                                              c(data$ensemble_rainfall_stats$bcparam1[input_not_zero[ii]],
-                                                                data$ensemble_rainfall_stats$bcparam2[input_not_zero[ii]]))
-      
-    }
-    
-    input_error_added[which(input_error_added!=0)]<-input_untrans_with_error
-    matplot(cbind(data$input,input_error_added),type="l")
-    
-    model_run<-gr4j.run(param=data$all_model_params, initial_state_S=theta_unnorm[i,1],
-                        initial_state_R=theta_unnorm[i,length_ts+number_of_sampled_inputs+1], 
-                        state_error=theta_unnorm[i,2:length_ts], input=data.frame(P=input_error_added,E=E_input),
-                        state_error_R=theta_unnorm[i,(length_ts+number_of_sampled_inputs+2):(2*length_ts+number_of_sampled_inputs)])/1000*data$area_m2/86400
-    
-    if(!is.na(model_run[1])){
-      # calculate for each day
-      sim_flow<-model_run*86400
-      indices<-sort(rep(1:length(model_run),24*6))
-      obs_agg<-aggregate(actual_obs_discharge_untrans,by=list(indices),sum)[,2]
-      
-      matplot(cbind(obs_agg,sim_flow),type="l",main=paste("disch trans sd =",
-                                                          round(sqrt(logL$error_discharge_variance_calc),2),
-                                                          "( expected = ",round(sqrt((population_flow_sd_trans^2)*24*6),2),")"))
-    }
-
-    
-    
-    # if(i%%cor_plot_interval==0){
-    #   # correlations
-    #   cor_theta<-cor(theta[1:i,])
-    #   lp<-levelplot(cor_theta,ylim=c(nrow(cor_theta)+0.5,0.5),at=seq(-1,1,length.out=51))
-    #   print(lp)
-    #   index_all_cor_theta<-i/cor_plot_interval
-    #   all_cor_theta[index_all_cor_theta,]<-c(cor_theta)
-    #   if(index_all_cor_theta>1 & i%%(cor_plot_interval*2)==0){
-    #     layout(1)
-    #     matplot(all_cor_theta[1:index_all_cor_theta,],type="l")
-    #   }
-    # }
-    
-    
-    acceptance_rate<-length(which(Jump[!is.na(Jump)]==1))/length(Jump[!is.na(Jump)])
-    cat("total acceptance_rate =",acceptance_rate,"\n")
-    
-    cat("discharge trans sd =",sqrt(logL$error_discharge_variance_calc),"( expected = ",sqrt((population_flow_sd_trans^2)*24*6),") \n")
-    if(export_diagnostic){
-      dev.off()
-    }
+  if(i%%diagnostic_plot_interval==0){
+    plot_function()
   }
   
-  if(tune_scale & i%%tune_interval==0){
+  if(tune_scale & (i%%tune_interval)==0 & i > i0*ITER){
     Jump_interval<-Jump[(i-tune_interval+1):i]
     interval_acc_rate<-length(which(Jump_interval==1))/length(Jump_interval)
     
@@ -1038,12 +1348,18 @@ for(i in start_iter:ITER){
   }
   
   
+  
 }
+
+
+
+
+
 elapsed_time<-difftime(Sys.time(),beginning_time,units="hours")
 cat("Elapsed time: ",elapsed_time," ",units(elapsed_time),"\n")
 
 # write the output
-prefix<-paste("bates",start_ts,length_ts,seed,sep="_")
+prefix<-paste("bates",start_ts,length_ts,initial_seed,seed,sep="_")
 
 if(Sys.info()[1]=="Windows"){
   gzip<-"software/gzip/gzip.exe -f"
@@ -1065,17 +1381,17 @@ write.table(SD2,output_name,row.names=F,quote=F,col.names=F,sep=",")
 system(paste(gzip,output_name))
 
 
-output_name<-paste0(output_dir,"/scaling_S_",prefix,".png")
-png(output_name)
-layout(1)
-plot(theta[1:i,2*length_ts+number_of_sampled_inputs+1],type="l")
-dev.off()
+# output_name<-paste0(output_dir,"/scaling_S_",prefix,".png")
+# png(output_name)
+# layout(1)
+# plot(theta[1:i,2*length_ts+number_of_sampled_inputs+1],type="l")
+# dev.off()
 
-output_name<-paste0(output_dir,"/scaling_R_",prefix,".png")
-png(output_name)
-layout(1)
-plot(theta[1:i,2*length_ts+number_of_sampled_inputs+2],type="l")
-dev.off()
+# output_name<-paste0(output_dir,"/scaling_R_",prefix,".png")
+# png(output_name)
+# layout(1)
+# plot(theta[1:i,2*length_ts+number_of_sampled_inputs+2],type="l")
+# dev.off()
 
 
 # write Covariance
@@ -1088,33 +1404,32 @@ output_name<-paste0(output_dir,"/RRparameters_",prefix,".csv")
 write.csv(t(rrm_opt$par),output_name,row.names=F,quote=F)
 system(paste(gzip,output_name))
 
-if(Sys.info()[1]=="Linux"){
-  subject<-prefix
-  message<-prefix
-  email_command<-sprintf("echo \"%s\" | mail -s \"%s\" shaunsanghokim@gmail.com",message,subject)
-  system(email_command)
-}
+# if(Sys.info()[1]=="Linux"){
+#   subject<-prefix
+#   message<-prefix
+#   email_command<-sprintf("echo \"%s\" | mail -s \"%s\" shaunsanghokim@gmail.com",message,subject)
+#   system(email_command)
+# }
 
-stop()
-# write log likelihood
-output_name<-paste0(output_dir,"/loglikelihood_",prefix,".csv")
-write.table(L,output_name,row.names=F,quote=F,col.names=F,sep=",")
-system(paste(gzip,output_name))
+# # write log likelihood
+# output_name<-paste0(output_dir,"/loglikelihood_",prefix,".csv")
+# write.table(L,output_name,row.names=F,quote=F,col.names=F,sep=",")
+# system(paste(gzip,output_name))
 
-# write log prior
-output_name<-paste0(output_dir,"/logprior_",prefix,".csv")
-write.table(Pr,output_name,row.names=F,quote=F,col.names=F,sep=",")
-system(paste(gzip,output_name))
+# # write log prior
+# output_name<-paste0(output_dir,"/logprior_",prefix,".csv")
+# write.table(Pr,output_name,row.names=F,quote=F,col.names=F,sep=",")
+# system(paste(gzip,output_name))
 
 #write log posterior
 output_name<-paste0(output_dir,"/logposterior_",prefix,".csv")
 write.table(L+Pr,output_name,row.names=F,quote=F,col.names=F,sep=",")
 system(paste(gzip,output_name))
 
-# write jump
-output_name<-paste0(output_dir,"/Jump_",prefix,".csv")
-write.table(Jump,output_name,row.names=F,quote=F,col.names=F,sep=",")
-system(paste(gzip,output_name))
+# # write jump
+# output_name<-paste0(output_dir,"/Jump_",prefix,".csv")
+# write.table(Jump,output_name,row.names=F,quote=F,col.names=F,sep=",")
+# system(paste(gzip,output_name))
 
 
 # # write correlation timeseries

@@ -196,9 +196,43 @@ error_input_variance<-input_error_sd^2
 
 
 
-logprior_fun<-trial_log_prior4_gr4jwithrouting_allinitstates5_2
-loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates5_v2
-
+logprior_fun<-function(params,min,max,data,likelihood=NULL){
+  return(0)
+}
+# loglikelihood_fun<-log_likelihood_trial4_gr4jwithrouting_allinitstates5_v2
+loglikelihood_fun<-function(data,params){
+  length_ts<-length(data$input)
+  state_normaliser<-10^(params[length_ts+length_ts+2]*10)
+  params_unnorm<-inv.normalise(params[1:(length_ts*2+1)],c(data$normalisers[1],rep(state_normaliser,length_ts-1),data$normalisers[(length_ts+1):(length_ts*2)],data$normalisers[length_ts*2+1]))
+  initial_state<-params_unnorm[1]
+  state_error<-params_unnorm[2:length_ts]
+  input_error<-params_unnorm[(length_ts+1):(length_ts+length_ts)]
+  init_state_R<-params_unnorm[length_ts*2+1]
+  
+  error_discharge_variance<-data$error_discharge_variance
+  error_input_variance<-data$error_input_variance
+  
+  input_ts<-data$input-input_error
+  E_ts<-data$E
+  input<-data.frame(P=input_ts,E=E_ts)
+  model_run<-gr4j.run(param=data$all_model_params, initial_state_S=initial_state, initial_state_R=init_state_R, 
+                      state_error=state_error, input=input)
+  
+  if(!is.na(model_run[1])){
+    error_discharge<-model_run-data$obs_discharge
+    
+    log_likelihood_error_discharge<-sum(dnorm(error_discharge,0,sqrt(error_discharge_variance),log=T))
+    
+    log_likelihood_error_input<-sum(dnorm(input_error,0,sqrt(error_input_variance),log=T))
+    
+    combined_log_likehood<-log_likelihood_error_input+log_likelihood_error_discharge #+error_discharge_prior
+    
+    return(list(combined_log_likehood=combined_log_likehood,error_discharge=error_discharge))
+  } else {
+    return(list(combined_log_likehood=-Inf,error_discharge=NA))
+  }
+  
+}
 #min_par<-c(0,0,1e-6)
 #max_par<-c(100,100,100)
 
@@ -614,123 +648,10 @@ acceptance_rate<-length(which(Jump[!is.na(Jump)]==1))/length(Jump[!is.na(Jump)])
 cat("acceptance_rate =",acceptance_rate,"\n")
 cat("Finished!! \n")
 
-if(Sys.info()[1]=="Linux"){
-  subject<-prefix
-  message<-prefix
-  email_command<-sprintf("echo \"%s\" | mail -s \"%s\" shaunsanghokim@gmail.com",message,subject)
-  system(email_command)
-}
+# if(Sys.info()[1]=="Linux"){
+#   subject<-prefix
+#   message<-prefix
+#   email_command<-sprintf("echo \"%s\" | mail -s \"%s\" shaunsanghokim@gmail.com",message,subject)
+#   system(email_command)
+# }
 
-# 
-# # stop()
-# # write.table(CovPar,"scripts/CovPar.csv",row.names=F,quote=F,col.names=F,sep=",")
-# # 
-# # write.csv(theta,"output/state_uncertainty/AM/theta.csv",row.names=F,quote=F)
-# # 
-# # # fraction of accepted jumps
-# # acceptance_rate<-length(which(Jump[!is.na(Jump)]==1))/length(Jump[!is.na(Jump)])
-# # cat("acceptance_rate =",acceptance_rate,"\n")
-# # 
-# # 
-# # correlations
-# library(lattice)
-# cor_theta<-cor(theta)
-# layout(1)
-# lp<-levelplot(cor_theta,ylim=c(nrow(cor_theta)+0.5,0.5),at=seq(-1,1,length.out=51))
-# print(lp)
-# # 
-# # # library(car)
-# # # scatterplotMatrix(theta[1:100,1:3])
-# # # pairs(theta[,1:3])
-# # 
-# # library(PerformanceAnalytics)
-# # chart.Correlation(theta,method="pearson",histogram=T,pch=16)
-# # 
-# # # get rid of nas
-# # theta_nona<-theta[!is.na(theta[,1]),]
-# # 
-# # indices of different data types
-# groups_indices<-list(1,2:(length(actual_state_error)+1),
-#                      (length(actual_state_error)+2):(length(actual_state_error)+length(input_trial)+1))
-# # 
-# # # plot intitial state, state error 1, input error 1
-# # layout(1:3)
-# # plot(theta_nona[,groups_indices[[1]]],type="l")
-# # plot(theta_nona[,groups_indices[[2]][1]],type="l",main="2nd time step state error")
-# # plot(theta_nona[,groups_indices[[3]][1]],type="l")
-# # 
-# # 
-# # # Likelihood removed nas
-# # layout(1:3)
-# L_no_na<-L[!is.na(L)]
-# # plot(L_no_na,type="l",main="log likelihood")
-# # 
-# # plot(Pr,type="l",main="log prior")
-# # 
-# # Calculate posterior
-# Pr_no_na<-Pr[!is.na(Pr)]
-# logposterior<-L_no_na+Pr_no_na
-# # plot(logposterior,type="l",main="log posterior")
-# # write.csv(logposterior,"output/state_uncertainty/AM/posterior.csv",row.names=F,quote=F)
-# # 
-# # unnormalise theta
-# #theta_unnorm<-t(apply(theta[!is.na(theta[,1]),],1,inv.normalise,factor=normalisers))
-# state_normaliser<-10^theta[1:i,length_ts+length_ts+1]
-# all_state_normaliser<-matrix(rep(state_normaliser,length_ts-1),ncol=length_ts-1)
-# all_normaliser<-cbind(rep(data$normalisers[1],length(state_normaliser)),
-#                       all_state_normaliser,
-#                       matrix(1,nrow=length(state_normaliser),ncol=length_ts))
-# 
-# theta_unnorm<-cbind(inv.normalise(theta[1:i,-ncol(theta)],all_normaliser),state_normaliser)
-# 
-# # layout(1:3)
-# # calculate state error sd
-# state_sd_calc<-apply(theta_unnorm[,groups_indices[[2]]],1,sd_zero_mean)
-# plot(state_sd_calc,type="l",main="state error sd",log="y")
-# 
-# burn.in<-100000
-# thin<-100
-# theta_p<-theta_unnorm[seq(from=min(nrow(theta_unnorm),burn.in),to=nrow(theta_unnorm),by=thin),]
-# #acf(theta_p[,15])
-# state_sd_calc_p<-apply(theta_p[,groups_indices[[2]]],1,sd_zero_mean)
-# layout(1:2)
-# boxplot(state_sd_calc_p,main="state error sd burn-in thinned")
-# boxplot(state_sd_calc_p,main="state error sd burn-in thinned (log y)",log="y")
-# 
-# 
-# 
-# # 
-# # # calculate input error sd
-# # input_sd_calc<-apply(theta_unnorm[,groups_indices[[3]]],1,sd_zero_mean)
-# # plot(input_sd_calc,type="l",main="input error sd")
-# # 
-# # # calculate discharge error sd
-# # discharge_sd_calc<-c()
-# # for(ii in 1:nrow(theta_unnorm)){
-# #   if(ii%%1000==0) cat(ii,"/",nrow(theta_unnorm),"\n")
-# #   input_run<-data.frame(P=input_trial-as.numeric(theta_unnorm[ii,groups_indices[[3]]]),E=E_input)
-# #   model_run<-gr4j.sma(data$model_param,as.numeric(theta_unnorm[ii,1]),as.numeric(theta_unnorm[ii,groups_indices[[2]]]),input_run)
-# #   error_discharge<-model_run-data$obs_discharge
-# #   discharge_sd_calc<-c(discharge_sd_calc,sd_zero_mean(error_discharge))
-# # }
-# # plot(discharge_sd_calc,type="l",main="discharge error sd")
-# # 
-# # layout(1)
-# # boxplot(state_sd_calc,main="state sd calc",log="y")
-# # abline(h=sd_zero_mean(actual_state_error),col=2,lty=2)
-# # 
-# # cat("actual_state_error_sd=",sd_zero_mean(actual_state_error),"\n")
-# # cat("input_error_sd=",sqrt(mean(input_error^2)),"\n")
-# # cat("actual_discharge_error_sd=",sqrt(mean(actual_discharge_error^2)),"\n")
-# 
-# # colormap
-# library(RColorBrewer)
-# #library(colorRamps)
-# #col.ramp<-colorRampPalette(c("white","blue","red"))(100)
-# col.ramp<-rev(colorRampPalette(brewer.pal(11,"Spectral"))(100))
-# layout(1)
-# smoothScatter(x=state_sd_calc,y=logposterior[1:i],nrpoints=0,colramp=colorRampPalette(col.ramp))
-# 
-# 
-# #theta_unnorm<-t(apply(prev_theta[!is.na(prev_theta[,1]),],1,inv.normalise,factor=normalisers))
-# #ppp<-prev_theta
